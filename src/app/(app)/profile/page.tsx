@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Newspaper,
   ShieldCheck,
-  ArrowUpRight,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +19,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { InstrumentSymbol } from "@/components/instrument-symbol";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { ScoreRing } from "@/components/trading/score-ring";
+import { NewsGrid } from "@/components/marketing/news-grid";
 import { useAuthStore } from "@/lib/auth-store";
 import { useTradeStore } from "@/lib/trade-store";
 import { availableBalance, usedMargin, totalEquity } from "@/lib/wallet";
@@ -271,33 +271,26 @@ export default function ProfilePage() {
       </motion.div>
 
       <motion.div variants={fadeUp} initial="hidden" animate="show" custom={6} className="mt-5">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-2">
-          <Newspaper className="h-3.5 w-3.5" />
-          Market news
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-2">
+              <Newspaper className="h-3.5 w-3.5" />
+              Market news
+            </div>
+            <p className="mt-1 text-xs text-muted-2">
+              Live from Economic Times, LiveMint, and BusinessLine.
+            </p>
+          </div>
+          <Link href="/news" className="text-xs font-medium text-primary hover:underline">
+            View all
+          </Link>
         </div>
-        <p className="mt-1 text-xs text-muted-2">
-          Live from Economic Times, LiveMint, and BusinessLine.
-        </p>
         {news === null ? (
           <p className="mt-4 text-sm text-muted-2">Loading news…</p>
         ) : news.length === 0 ? (
           <p className="mt-4 text-sm text-muted-2">News feed is unavailable right now.</p>
         ) : (
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {news.map((item) => (
-              <a key={item.id} href={item.link} target="_blank" rel="noopener noreferrer" className="group">
-                <Card className="h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-border-strong group-hover:shadow-lg group-hover:shadow-black/10">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-xs text-muted-2">
-                      {item.source} &middot; {item.time}
-                    </span>
-                    <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-2 transition-colors group-hover:text-primary" />
-                  </div>
-                  <p className="mt-2.5 text-sm font-medium leading-snug">{item.headline}</p>
-                </Card>
-              </a>
-            ))}
-          </div>
+          <NewsGrid news={news} className="mt-3 sm:grid-cols-2 lg:grid-cols-2" />
         )}
       </motion.div>
     </div>

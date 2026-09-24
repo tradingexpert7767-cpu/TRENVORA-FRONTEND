@@ -6,6 +6,7 @@
 export type LiveNewsItem = {
   id: string;
   headline: string;
+  summary: string;
   link: string;
   source: string;
   time: string;
@@ -49,11 +50,14 @@ async function fetchSource(source: { name: string; url: string }): Promise<LiveN
     const xml = await res.text();
     const items = xml.match(/<item>[\s\S]*?<\/item>/g) ?? [];
 
-    return items.slice(0, 6).map((block, i) => {
+    return items.slice(0, 8).map((block, i) => {
       const publishedAt = new Date(extractTag(block, "pubDate")).getTime() || 0;
+      const rawSummary = extractTag(block, "description");
+      const summary = rawSummary.length > 180 ? `${rawSummary.slice(0, 177)}…` : rawSummary;
       return {
         id: `${source.name}-${i}-${publishedAt}`,
         headline: extractTag(block, "title"),
+        summary,
         link: extractTag(block, "link"),
         source: source.name,
         time: relativeTime(publishedAt),
