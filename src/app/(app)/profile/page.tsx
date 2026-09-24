@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, type Variants } from "motion/react";
 import {
@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Newspaper,
   ShieldCheck,
+  ArrowUpRight,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { useTradeStore } from "@/lib/trade-store";
 import { availableBalance, usedMargin, totalEquity } from "@/lib/wallet";
 import { analyzeTrades } from "@/lib/behavior-analysis";
-import { marketNews } from "@/lib/market-news";
+import type { LiveNewsItem } from "@/lib/news";
 import { cn } from "@/lib/utils";
 
 function formatInr(n: number) {
@@ -57,6 +58,22 @@ export default function ProfilePage() {
 
   const behavior = useMemo(() => analyzeTrades(history), [history]);
   const recentTrades = history.slice(0, 5);
+
+  const [news, setNews] = useState<LiveNewsItem[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/news")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) setNews(data.news ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setNews([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (!user) {
     return (
@@ -226,14 +243,27 @@ export default function ProfilePage() {
 
       <motion.div variants={fadeUp} initial="hidden" animate="show" custom={5} className="mt-5">
         <Card>
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-2">
-            <Sparkles className="h-3.5 w-3.5" />
-            Behavioural insight
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-2">
+              <Sparkles className="h-3.5 w-3.5" />
+              Your patterns
+            </div>
+            <Link
+              href="/insights"
+              className="inline-flex items-center gap-1 text-xs font-medium text-intelligence hover:underline"
+            >
+              Full analysis
+              <ChevronRight className="h-3 w-3" />
+            </Link>
           </div>
-          <p className="mt-2 text-sm font-medium">
-            {behavior.insights[0].title}
-          </p>
-          <p className="mt-1 text-sm leading-relaxed text-muted">{behavior.insights[0].detail}</p>
+          <div className="mt-3 flex flex-col divide-y divide-border">
+            {behavior.insights.slice(0, 3).map((insight) => (
+              <div key={insight.id} className="py-3 first:pt-0 last:pb-0">
+                <p className="text-sm font-medium">{insight.title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted">{insight.detail}</p>
+              </div>
+            ))}
+          </div>
         </Card>
       </motion.div>
 
@@ -243,23 +273,29 @@ export default function ProfilePage() {
           Market news
         </div>
         <p className="mt-1 text-xs text-muted-2">
-          Illustrative headlines — not a live feed yet.
+          Live from Economic Times, LiveMint, and BusinessLine.
         </p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {marketNews.map((item) => (
-            <Card
-              key={item.id}
-              className="transition-all duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-lg hover:shadow-black/10"
-            >
-              <div className="flex items-center justify-between">
-                <Badge tone="neutral">{item.tag}</Badge>
-                <span className="text-xs text-muted-2">{item.time}</span>
-              </div>
-              <p className="mt-2.5 text-sm font-medium leading-snug">{item.headline}</p>
-              <p className="mt-1.5 text-xs text-muted-2">{item.source}</p>
-            </Card>
-          ))}
-        </div>
+        {news === null ? (
+          <p className="mt-4 text-sm text-muted-2">Loading news…</p>
+        ) : news.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-2">News feed is unavailable right now.</p>
+        ) : (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {news.map((item) => (
+              <a key={item.id} href={item.link} target="_blank" rel="noopener noreferrer" className="group">
+                <Card className="h-full transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-border-strong group-hover:shadow-lg group-hover:shadow-black/10">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs text-muted-2">
+                      {item.source} &middot; {item.time}
+                    </span>
+                    <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-2 transition-colors group-hover:text-primary" />
+                  </div>
+                  <p className="mt-2.5 text-sm font-medium leading-snug">{item.headline}</p>
+                </Card>
+              </a>
+            ))}
+          </div>
+        )}
       </motion.div>
     </div>
   );

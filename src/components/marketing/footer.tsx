@@ -7,18 +7,15 @@ const columns = [
     title: "Product",
     links: [
       { href: "/features", label: "Features" },
-      { href: "/trade-guard", label: "Trade Guard" },
-      { href: "/ai-coach", label: "AI Coach" },
-      { href: "/replay", label: "Market Replay" },
-      { href: "/strategy-lab", label: "Strategy Lab" },
+      { href: "/practice", label: "Practice" },
+      { href: "/pricing", label: "Pricing" },
     ],
   },
   {
     title: "Company",
     links: [
-      { href: "/pricing", label: "Pricing" },
-      { href: "/resources", label: "Resources" },
       { href: "/faq", label: "FAQ" },
+      { href: "/resources", label: "Resources" },
     ],
   },
   {

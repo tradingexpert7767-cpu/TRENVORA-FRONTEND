@@ -12,11 +12,8 @@ import { useAuthStore } from "@/lib/auth-store";
 
 const links = [
   { href: "/features", label: "Features" },
-  { href: "/trade-guard", label: "Trade Guard" },
-  { href: "/ai-coach", label: "AI Coach" },
-  { href: "/replay", label: "Replay" },
-  { href: "/strategy-lab", label: "Strategy Lab" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/faq", label: "FAQ" },
 ];
 
 export function Navbar() {

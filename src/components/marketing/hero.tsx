@@ -15,12 +15,11 @@ export function Hero() {
 
       <Container className="grid items-center gap-14 lg:grid-cols-2 lg:gap-10">
         <div className="max-w-xl">
-          <Badge tone="intelligence">
-            <Sparkles className="h-3.5 w-3.5" />
-            AI-powered trading behavioural intelligence
-          </Badge>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            A Modern Trading Technology
+          </p>
 
-          <h1 className="mt-6 text-4xl font-semibold leading-[1.08] tracking-tight text-balance sm:text-5xl lg:text-[3.25rem]">
+          <h1 className="mt-3 text-4xl font-semibold leading-[1.08] tracking-tight text-balance sm:text-5xl lg:text-[3.25rem]">
             Train your trading before you risk your money.
           </h1>
 

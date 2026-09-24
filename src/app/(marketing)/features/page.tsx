@@ -36,13 +36,13 @@ const modules = [
     icon: ShieldAlert,
     title: "Trade Guard",
     description:
-      "Real-time market-condition alerts — momentum shifts, volatility spikes, unusual volume, breadth deterioration. Observations, never buy/sell instructions.",
+      "Your safety net while you trade — real-time market-condition alerts for momentum shifts, volatility spikes, and unusual volume. Observations, never buy/sell instructions.",
   },
   {
     icon: Sparkles,
     title: "AI Trading Coach",
     description:
-      "Ask why you lost, what mistakes repeat, or how this week compares to last. Every answer is grounded in your own structured trade data — never invented.",
+      "Reads your trade history — paper trades today, imported real trades later — to spot your mental state at entry (FOMO, revenge, calm) and tell you exactly what pattern to fix next. Grounded in your own data, never invented.",
   },
   {
     icon: History,
@@ -69,8 +69,8 @@ export default function FeaturesPage() {
     <>
       <PageHeader
         eyebrow="Product"
-        title="Everything you need to practice, and understand, your trading."
-        description="Trenvora is built around one loop: practice, trade, analyze, understand, improve, practice again. Each module below exists to close that loop."
+        title="We analyze how you trade — not just what you traded."
+        description="Every paper trade you place gets read back to you: your entries, your exits, the emotion you tagged going in, and whether you stuck to your own plan. Trenvora turns that into a clear read on your mental state under pressure and specific, evidence-based suggestions for what to change next."
       />
 
       <section className="py-16 sm:py-20">
