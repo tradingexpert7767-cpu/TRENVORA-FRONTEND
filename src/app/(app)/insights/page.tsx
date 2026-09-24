@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertTriangle, CheckCircle2, Info, Sparkles, TrendingUp } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, Lightbulb, Sparkles, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Table, TableHead, TableBody, TableRow, Th, Td } from "@/components/ui/table";
 import { InstrumentSymbol } from "@/components/instrument-symbol";
 import { ScoreRing } from "@/components/trading/score-ring";
+import { EmotionTimeline } from "@/components/trading/emotion-timeline";
 import { useTradeStore } from "@/lib/trade-store";
 import { analyzeTrades, type Insight } from "@/lib/behavior-analysis";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ export default function InsightsPage() {
           <div>
             <p className="font-medium">{report.insights[0].title}</p>
             <p className="mt-1.5 max-w-xs text-sm text-muted">{report.insights[0].detail}</p>
+            <p className="mt-1.5 max-w-xs text-sm text-muted-2">{report.insights[0].action}</p>
           </div>
           <ButtonLink href="/practice" size="sm">
             Start practicing
@@ -110,6 +112,17 @@ export default function InsightsPage() {
       </div>
 
       <div className="mt-8">
+        <h2 className="text-lg font-semibold tracking-tight">Emotional state over time</h2>
+        <p className="mt-1 text-sm text-muted">
+          Every trade is tagged with how you felt entering it — this is where calm and
+          high-tension trades show up, in order.
+        </p>
+        <Card className="mt-4">
+          <EmotionTimeline history={history} />
+        </Card>
+      </div>
+
+      <div className="mt-8">
         <h2 className="text-lg font-semibold tracking-tight">Behavioural insights</h2>
         <p className="mt-1 text-sm text-muted">
           Every observation below is backed by trades you can click into.
@@ -143,6 +156,13 @@ export default function InsightsPage() {
                 <div>
                   <p className="text-sm font-medium">{insight.title}</p>
                   <p className="mt-1 text-sm leading-relaxed text-muted">{insight.detail}</p>
+                  <div className="mt-2.5 flex items-start gap-1.5 rounded-[var(--radius-sm)] bg-surface-2 px-3 py-2">
+                    <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    <p className="text-xs leading-relaxed text-muted">
+                      <span className="font-medium text-foreground">How to improve: </span>
+                      {insight.action}
+                    </p>
+                  </div>
                 </div>
               </Card>
             );

@@ -261,6 +261,9 @@ export default function ProfilePage() {
               <div key={insight.id} className="py-3 first:pt-0 last:pb-0">
                 <p className="text-sm font-medium">{insight.title}</p>
                 <p className="mt-1 text-sm leading-relaxed text-muted">{insight.detail}</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-intelligence">
+                  How to improve: {insight.action}
+                </p>
               </div>
             ))}
           </div>

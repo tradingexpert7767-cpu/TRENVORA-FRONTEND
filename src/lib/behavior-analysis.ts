@@ -5,6 +5,7 @@ export type Insight = {
   tone: "positive" | "warning" | "negative" | "intelligence";
   title: string;
   detail: string;
+  action: string;
 };
 
 export type BehaviorReport = {
@@ -23,6 +24,13 @@ export type BehaviorReport = {
 const MIN_TRADES = 3;
 const OVERTRADE_DAILY_LIMIT = 3;
 const IMPULSIVE_EMOTIONS: Emotion[] = ["FOMO", "Revenge"];
+const TENSE_EMOTIONS: Emotion[] = ["FOMO", "Revenge", "Fearful", "Uncertain"];
+
+// Used by the emotion timeline: every emotion resolves to one of two
+// states so "calm vs high-tension" reads as a clear pattern over time.
+export function emotionState(emotion: Emotion): "calm" | "tense" {
+  return TENSE_EMOTIONS.includes(emotion) ? "tense" : "calm";
+}
 
 function dayKey(ts: number) {
   return new Date(ts).toDateString();
@@ -44,6 +52,7 @@ export function analyzeTrades(history: ClosedTrade[]): BehaviorReport {
           tone: "intelligence",
           title: "Not enough trades yet",
           detail: `Close at least ${MIN_TRADES} paper trades to unlock behavioural analysis. You've closed ${totalTrades} so far.`,
+          action: `Place ${MIN_TRADES - totalTrades} more paper trade${MIN_TRADES - totalTrades === 1 ? "" : "s"} on the Practice desk — each one uses the pre-trade checklist, which is what this analysis reads from.`,
         },
       ],
     };
@@ -69,6 +78,7 @@ export function analyzeTrades(history: ClosedTrade[]): BehaviorReport {
       tone: "positive",
       title: `${winRate}% win rate across ${totalTrades} trades`,
       detail: `${wins.length} winners, ${losses.length} losers. Average win ${formatInr(avgWin)} vs average loss ${formatInr(avgLoss)}.`,
+      action: "Keep doing what you're doing — the process is working. Don't change entry criteria just because a recent trade lost.",
     });
   } else if (winRate < 40) {
     score -= 10;
@@ -77,6 +87,7 @@ export function analyzeTrades(history: ClosedTrade[]): BehaviorReport {
       tone: "warning",
       title: `${winRate}% win rate across ${totalTrades} trades`,
       detail: `${losses.length} of ${totalTrades} trades closed at a loss. Average loss ${formatInr(avgLoss)} vs average win ${formatInr(avgWin)}.`,
+      action: "Review your last 5 losing trades in the journal — look for a shared setup or emotion tag before changing anything else.",
     });
   }
 
@@ -94,6 +105,7 @@ export function analyzeTrades(history: ClosedTrade[]): BehaviorReport {
       tone: "negative",
       title: "Overtrading detected",
       detail: `You took ${worstDay[1]} trades on ${worstDay[0]} — above a healthy ${OVERTRADE_DAILY_LIMIT}-trade daily pace. High-frequency days often correlate with lower-quality entries.`,
+      action: `Set a hard cap of ${OVERTRADE_DAILY_LIMIT} trades a day and stop once you hit it, win or lose — the 7-Day Discipline Challenge enforces exactly this.`,
     });
   }
 
@@ -114,6 +126,7 @@ export function analyzeTrades(history: ClosedTrade[]): BehaviorReport {
         tone: "negative",
         title: "FOMO and revenge trades underperform your calm entries",
         detail: `${impulsive.length} trades tagged FOMO/Revenge won ${impulsiveWinRate}% of the time, vs ${calmWinRate}% for trades entered Calm or Confident.`,
+        action: "When you catch yourself entering on FOMO or right after a loss, wait 5 minutes and re-write the thesis box before confirming — that pause alone breaks most impulsive entries.",
       });
     } else {
       insights.push({
@@ -121,6 +134,7 @@ export function analyzeTrades(history: ClosedTrade[]): BehaviorReport {
         tone: "warning",
         title: `${impulsive.length} trades entered on FOMO or Revenge`,
         detail: `That's ${Math.round((impulsive.length / totalTrades) * 100)}% of your trades. Worth watching even though it hasn't hurt your win rate yet.`,
+        action: "It hasn't cost you yet — but tag it consistently so you'll see the pattern early if it starts to.",
       });
     }
   }
@@ -140,6 +154,7 @@ export function analyzeTrades(history: ClosedTrade[]): BehaviorReport {
       tone: "warning",
       title: "Exiting winners before target",
       detail: `${earlyExits.length} of ${winsWithTarget.length} winning trades (${pct}%) closed before reaching the planned target.`,
+      action: "Try trailing your stop instead of watching the ticker once you're in profit — it removes the decision to bail early without capping the upside.",
     });
   }
 
@@ -154,6 +169,7 @@ export function analyzeTrades(history: ClosedTrade[]): BehaviorReport {
       tone: "warning",
       title: "Inconsistent position sizing",
       detail: `Your largest position was ${(maxSize / avgSize).toFixed(1)}x your average size (${formatInr(maxSize)} vs an average of ${formatInr(avgSize)}). Sudden size increases raise risk per trade.`,
+      action: "Pick one position size (or a fixed % of your wallet) for every setup with the same conviction level, and only break that rule with a written reason in the thesis box.",
     });
   } else {
     score += 6;
@@ -172,6 +188,7 @@ export function analyzeTrades(history: ClosedTrade[]): BehaviorReport {
       tone: "negative",
       title: "Losses exceeded the planned stop loss",
       detail: `${stopBreaches.length} losing trade${stopBreaches.length > 1 ? "s" : ""} closed beyond your stated stop loss — the actual loss was larger than planned.`,
+      action: "Treat your stop loss as the exit, not a suggestion — if a trade needs a wider stop, that's a signal to size down, not to move the stop.",
     });
   }
 
@@ -181,6 +198,7 @@ export function analyzeTrades(history: ClosedTrade[]): BehaviorReport {
       tone: "positive",
       title: "No major behavioural flags",
       detail: `Across ${totalTrades} trades, sizing, emotion, and exit discipline all stayed within a healthy range.`,
+      action: "Nothing to fix right now — keep journaling every trade so this stays true as your sample size grows.",
     });
   }
 
