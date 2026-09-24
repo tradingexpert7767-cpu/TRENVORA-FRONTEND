@@ -12,6 +12,7 @@ import { useAuthStore } from "@/lib/auth-store";
 
 const links = [
   { href: "/features", label: "Features" },
+  { href: "/#market-news", label: "News" },
   { href: "/pricing", label: "Pricing" },
   { href: "/faq", label: "FAQ" },
 ];
@@ -51,7 +52,7 @@ export function Navbar() {
               Login
             </ButtonLink>
           )}
-          <ButtonLink href="/practice" variant="primary" size="sm">
+          <ButtonLink href="/signup" variant="primary" size="sm">
             Start Practicing
           </ButtonLink>
         </div>
@@ -98,7 +99,7 @@ export function Navbar() {
                   Login
                 </ButtonLink>
               )}
-              <ButtonLink href="/practice" variant="primary" size="md">
+              <ButtonLink href="/signup" variant="primary" size="md">
                 Start Practicing
               </ButtonLink>
             </div>

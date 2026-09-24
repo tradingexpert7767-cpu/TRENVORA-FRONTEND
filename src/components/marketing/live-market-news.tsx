@@ -7,7 +7,7 @@ export async function LiveMarketNews() {
   const news = await fetchMarketNews(6);
 
   return (
-    <section className="border-t border-border py-20 sm:py-28">
+    <section id="market-news" className="scroll-mt-20 border-t border-border py-20 sm:py-28">
       <Container>
         <div className="flex items-end justify-between gap-4">
           <div>

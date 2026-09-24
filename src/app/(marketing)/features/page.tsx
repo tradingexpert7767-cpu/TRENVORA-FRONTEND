@@ -12,10 +12,10 @@ import {
 import { PageHeader } from "@/components/marketing/page-header";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
-import { Table, TableHead, TableBody, TableRow, Th, Td } from "@/components/ui/table";
+import { ButtonLink } from "@/components/ui/button";
 import { InstrumentSymbol } from "@/components/instrument-symbol";
 import { DnaRadarChart } from "@/components/charts/dna-radar-chart";
-import { tradingDna, journalTrades } from "@/lib/mock-data";
+import { tradingDna } from "@/lib/mock-data";
 
 const instruments = ["NIFTY", "BANK NIFTY", "SENSEX"];
 
@@ -113,83 +113,31 @@ export default function FeaturesPage() {
             Trading DNA
           </h2>
           <p className="mt-3 max-w-md text-muted leading-relaxed">
-            A long-term behavioural profile built from your actual trades — not
-            a vibe. Every score is backed by measurable evidence you can click
-            into.
+            A long-term behavioural profile built from your actual trades —
+            not a vibe. Every score is backed by measurable evidence you can
+            click into.
           </p>
 
-          <div className="mt-10 grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10">
-            <Card>
+          <Card className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+            <div className="flex-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border-strong px-2.5 py-1 text-xs font-medium text-muted-2">
+                Example — not your data
+              </span>
+              <p className="mt-3 text-sm leading-relaxed text-muted">
+                This score fills in for real once you&apos;ve closed a few
+                paper trades — Discipline, Risk Control, Entry &amp; Exit
+                Quality, all backed by evidence you can click into, the same
+                way it works here.
+              </p>
+            </div>
+            <div className="w-full shrink-0 sm:w-56">
               <DnaRadarChart data={tradingDna.map((t) => ({ label: t.label, score: t.score }))} />
-            </Card>
+            </div>
+          </Card>
 
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <Th>Trait</Th>
-                  <Th className="text-right">Score</Th>
-                  <Th>Evidence</Th>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {tradingDna.map((trait) => (
-                  <TableRow key={trait.label}>
-                    <Td className="font-medium">{trait.label}</Td>
-                    <Td className="text-right font-mono">{trait.score}</Td>
-                    <Td className="max-w-xs whitespace-normal text-xs text-muted">
-                      {trait.evidence}
-                    </Td>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Container>
-      </section>
-
-      <section className="border-t border-border py-16 sm:py-20">
-        <Container>
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Trading Journal
-          </h2>
-          <p className="mt-2 max-w-xl text-muted">
-            Every simulated trade is logged automatically — no manual entry
-            required.
-          </p>
-
-          <Table className="mt-8">
-            <TableHead>
-              <TableRow>
-                <Th>Instrument</Th>
-                <Th>Date</Th>
-                <Th className="text-right">Entry</Th>
-                <Th className="text-right">Exit</Th>
-                <Th className="text-right">Qty</Th>
-                <Th className="text-right">P&amp;L</Th>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {journalTrades.map((trade) => (
-                <TableRow key={`${trade.instrument}-${trade.date}-${trade.entry}`}>
-                  <Td className="flex items-center gap-2.5 font-medium">
-                    <InstrumentSymbol instrument={trade.instrument} />
-                    {trade.instrument}
-                  </Td>
-                  <Td className="text-muted">{trade.date}</Td>
-                  <Td className="text-right font-mono">{trade.entry}</Td>
-                  <Td className="text-right font-mono">{trade.exit}</Td>
-                  <Td className="text-right font-mono">{trade.qty}</Td>
-                  <Td
-                    className={`text-right font-mono font-medium ${
-                      trade.pnl >= 0 ? "text-positive" : "text-negative"
-                    }`}
-                  >
-                    {trade.pnl >= 0 ? "+" : "-"}₹{Math.abs(trade.pnl).toLocaleString("en-IN")}
-                  </Td>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ButtonLink href="/signup" size="md" className="mt-6">
+            Build your real Trading DNA
+          </ButtonLink>
         </Container>
       </section>
 
