@@ -69,7 +69,7 @@ export async function fetchMarketNews(limit = 6): Promise<LiveNewsItem[]> {
   const results = await Promise.all(SOURCES.map(fetchSource));
   return results
     .flat()
-    .filter((item) => item.headline)
+    .filter((item) => item.headline && item.link)
     .sort((a, b) => b.publishedAt - a.publishedAt)
     .slice(0, limit);
 }

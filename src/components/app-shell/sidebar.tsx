@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import {
   LineChart,
@@ -10,6 +10,7 @@ import {
   Sparkles,
   Dna,
   FlaskConical,
+  LogOut,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -32,7 +33,14 @@ const exploreLinks = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+
+  function handleLogout() {
+    logout();
+    router.push("/");
+  }
 
   return (
     <aside className="hidden w-60 shrink-0 border-r border-border lg:flex lg:flex-col">
@@ -92,19 +100,29 @@ export function Sidebar() {
 
       <div className="border-t border-border p-3">
         {user ? (
-          <Link
-            href="/profile"
-            className={cn(
-              "flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-2 transition-colors hover:bg-surface",
-              pathname === "/profile" && "bg-surface-2",
-            )}
-          >
-            <UserAvatar name={user.name} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{user.name}</p>
-              <p className="truncate text-xs text-muted-2">{user.email}</p>
-            </div>
-          </Link>
+          <div className="flex flex-col gap-1">
+            <Link
+              href="/profile"
+              className={cn(
+                "flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-2 transition-colors hover:bg-surface",
+                pathname === "/profile" && "bg-surface-2",
+              )}
+            >
+              <UserAvatar name={user.name} />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{user.name}</p>
+                <p className="truncate text-xs text-muted-2">{user.email}</p>
+              </div>
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-2 text-sm text-negative transition-colors hover:bg-negative/10"
+            >
+              <LogOut className="h-4 w-4" />
+              Log out
+            </button>
+          </div>
         ) : (
           <ButtonLink href="/login" variant="secondary" size="sm" className="w-full">
             Log in

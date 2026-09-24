@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import {
   LineChart,
@@ -14,6 +14,7 @@ import {
   Dna,
   FlaskConical,
   User,
+  LogOut,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -35,8 +36,16 @@ const exploreLinks = [
 
 export function MobileTabs() {
   const pathname = usePathname();
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const [open, setOpen] = useState(false);
+
+  function handleLogout() {
+    logout();
+    setOpen(false);
+    router.push("/");
+  }
 
   return (
     <>
@@ -133,6 +142,16 @@ export function MobileTabs() {
                     {label}
                   </Link>
                 ))}
+                {user && (
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="mt-3 flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-sm)] px-3 py-2.5 text-sm text-negative transition-colors hover:bg-negative/10"
+                  >
+                    <LogOut className="h-4 w-4" strokeWidth={1.75} />
+                    Log out
+                  </button>
+                )}
               </div>
 
               <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
