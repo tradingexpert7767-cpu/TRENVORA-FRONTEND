@@ -16,6 +16,7 @@ export function SignupForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,9 +26,13 @@ export function SignupForm() {
     setLoading(true);
     setError(null);
     try {
-      await signup(email, password, name);
-      toast.success("Account created", { description: "Welcome to Trenvora." });
-      router.push("/profile");
+      const result = await signup(email, password, name);
+      if (result.requiresVerification) {
+        router.push("/verify-email");
+      } else {
+        toast.success("Account created", { description: "Welcome to Trenvora." });
+        router.push("/profile");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -84,7 +89,25 @@ export function SignupForm() {
           {error}
         </p>
       )}
-      <Button type="submit" disabled={loading} className="mt-2">
+      <label className="flex items-start gap-2.5 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+          required
+        />
+        <span className="text-xs text-muted leading-relaxed">
+          I understand that Trenvora is a{" "}
+          <strong className="text-foreground">paper trading simulator for educational purposes only</strong>.
+          It does not provide financial advice, investment signals, or recommendations to buy or sell any asset.
+          All analysis is simulated. I agree to the{" "}
+          <a href="/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Terms of Service</a>{" "}
+          and{" "}
+          <a href="/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+        </span>
+      </label>
+      <Button type="submit" disabled={loading || !agreed} className="mt-2">
         {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
         {loading ? "Creating account…" : "Create account"}
       </Button>

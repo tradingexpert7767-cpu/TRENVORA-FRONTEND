@@ -15,14 +15,18 @@ export type AuthUser = {
 };
 
 type LoginResponse = { accessToken: string; user: AuthUser };
+type VerifyNeededResponse = { requiresVerification: true; email: string };
 
 type AuthState = {
   token: string | null;
   user: AuthUser | null;
   status: "idle" | "loading" | "error";
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name?: string) => Promise<void>;
+  pendingEmail: string | null;
+  login: (email: string, password: string) => Promise<{ requiresVerification?: boolean }>;
+  signup: (email: string, password: string, name?: string) => Promise<{ requiresVerification?: boolean }>;
+  verifyOtp: (email: string, code: string) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
   logout: () => void;
 };
@@ -32,14 +36,20 @@ async function runAuthRequest(
   path: string,
   body: Record<string, unknown>,
   fallbackErrorByStatus?: Record<number, string>,
-) {
+): Promise<LoginResponse | VerifyNeededResponse> {
   set({ status: "loading", error: null });
   try {
-    const data = await apiFetch<LoginResponse>(path, {
+    const data = await apiFetch<LoginResponse | VerifyNeededResponse>(path, {
       method: "POST",
       body: JSON.stringify(body),
     });
-    set({ token: data.accessToken, user: data.user, status: "idle", error: null });
+    if ("requiresVerification" in data && data.requiresVerification) {
+      set({ pendingEmail: data.email, status: "idle" });
+      return data;
+    }
+    const loginData = data as LoginResponse;
+    set({ token: loginData.accessToken, user: loginData.user, status: "idle", error: null, pendingEmail: null });
+    return loginData;
   } catch (err) {
     const message =
       err instanceof ApiError
@@ -57,15 +67,49 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       status: "idle",
       error: null,
-      login: (email, password) =>
-        runAuthRequest(set, "/auth/login", { email, password }, { 401: "Incorrect email or password." }),
-      signup: (email, password, name) =>
-        runAuthRequest(set, "/auth/signup", { email, password, name }, {
+      pendingEmail: null,
+
+      login: async (email, password) => {
+        const result = await runAuthRequest(set, "/auth/login", { email, password }, {
+          401: "Incorrect email or password.",
+        });
+        return "requiresVerification" in result ? { requiresVerification: true } : {};
+      },
+
+      signup: async (email, password, name) => {
+        const result = await runAuthRequest(set, "/auth/signup", { email, password, name }, {
           409: "An account with this email already exists.",
-        }),
-      loginWithGoogle: (idToken) => runAuthRequest(set, "/auth/google", { idToken }),
-      logout: () => set({ token: null, user: null, status: "idle", error: null }),
+        });
+        return "requiresVerification" in result ? { requiresVerification: true } : {};
+      },
+
+      verifyOtp: async (email, code) => {
+        await runAuthRequest(set, "/auth/verify-otp", { email, code }, {
+          400: "Invalid or expired code. Try again.",
+        });
+      },
+
+      resendOtp: async (email) => {
+        set({ status: "loading", error: null });
+        try {
+          await apiFetch("/auth/resend-otp", { method: "POST", body: JSON.stringify({ email }) });
+          set({ status: "idle" });
+        } catch (err) {
+          const message = err instanceof ApiError ? err.message : "Failed to resend code.";
+          set({ status: "error", error: message });
+          throw new Error(message);
+        }
+      },
+
+      loginWithGoogle: async (idToken) => {
+        await runAuthRequest(set, "/auth/google", { idToken });
+      },
+
+      logout: () => set({ token: null, user: null, status: "idle", error: null, pendingEmail: null }),
     }),
-    { name: "trenvora-auth", partialize: (s) => ({ token: s.token, user: s.user }) },
+    {
+      name: "trenvora-auth",
+      partialize: (s) => ({ token: s.token, user: s.user, pendingEmail: s.pendingEmail }),
+    },
   ),
 );

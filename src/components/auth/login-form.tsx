@@ -13,7 +13,7 @@ import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 export function LoginForm() {
   const router = useRouter();
-  const login = useAuthStore((s) => s.login);
+  const { login } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,9 +25,13 @@ export function LoginForm() {
     setLoading(true);
     setError(null);
     try {
-      await login(email, password);
-      toast.success("Welcome back", { description: "Signed in to your paper trading account." });
-      router.push("/profile");
+      const result = await login(email, password);
+      if (result.requiresVerification) {
+        router.push("/verify-email");
+      } else {
+        toast.success("Welcome back", { description: "Signed in to your paper trading account." });
+        router.push("/profile");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
