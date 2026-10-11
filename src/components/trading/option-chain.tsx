@@ -7,10 +7,13 @@ export function OptionChain({
   rows,
   spot,
   onSelect,
+  instrument = "",
 }: {
   rows: OptionChainRow[];
   spot: number;
   onSelect: (leg: "CE" | "PE", strike: number, premium: number) => void;
+  /** Underlying name, used in button labels for screen readers. */
+  instrument?: string;
 }) {
   const atmStrike = rows.reduce(
     (closest, r) => (Math.abs(r.strike - spot) < Math.abs(closest - spot) ? r.strike : closest),
@@ -19,8 +22,11 @@ export function OptionChain({
 
   return (
     <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-border">
-      <table className="w-full min-w-[720px] border-collapse text-xs">
-        <thead className="bg-surface-2 text-[11px] uppercase tracking-wide text-muted-2">
+      <table className="w-full min-w-[720px] border-collapse text-xs tabular-nums">
+        <caption className="sr-only">
+          {instrument} option chain. Calls on the left, puts on the right; in-the-money premiums are shaded. Select a premium to buy that option.
+        </caption>
+        <thead className="bg-surface-2 text-xs uppercase tracking-wide text-muted">
           <tr>
             <th className="px-3 py-2.5 text-right font-medium">OI</th>
             <th className="px-3 py-2.5 text-right font-medium">Volume</th>
@@ -42,15 +48,16 @@ export function OptionChain({
             const peItm = row.strike > spot;
             return (
               <tr key={row.strike} className={cn(isAtm && "bg-primary/5")}>
-                <td className="px-3 py-2 text-right text-muted-2">{formatCompact(row.ce.oi)}</td>
-                <td className="px-3 py-2 text-right text-muted-2">{formatCompact(row.ce.volume)}</td>
-                <td className="px-3 py-2 text-right text-muted-2">{row.ce.iv.toFixed(1)}</td>
-                <td className="p-1 text-right">
+                <td className="px-3 py-2 text-right text-muted">{formatCompact(row.ce.oi)}</td>
+                <td className="px-3 py-2 text-right text-muted">{formatCompact(row.ce.volume)}</td>
+                <td className="px-3 py-2 text-right text-muted">{row.ce.iv.toFixed(1)}</td>
+                <td className={cn("p-1 text-right", ceItm && "bg-positive/5")}>
                   <button
                     type="button"
                     onClick={() => onSelect("CE", row.strike, row.ce.ltp)}
+                    aria-label={`Buy ${instrument} ${row.strike} CE at ${row.ce.ltp.toFixed(2)}`}
                     className={cn(
-                      "w-full cursor-pointer rounded-[var(--radius-sm)] px-2.5 py-1.5 text-right font-mono font-medium transition-colors hover:bg-positive/15",
+                      "min-h-10 w-full cursor-pointer rounded-[var(--radius-sm)] px-2.5 py-1.5 text-right font-mono font-medium transition-colors hover:bg-positive/15",
                       ceItm ? "text-foreground" : "text-positive",
                     )}
                   >
@@ -65,21 +72,22 @@ export function OptionChain({
                 >
                   {row.strike.toLocaleString("en-IN")}
                 </td>
-                <td className="p-1 text-left">
+                <td className={cn("p-1 text-left", peItm && "bg-negative/5")}>
                   <button
                     type="button"
                     onClick={() => onSelect("PE", row.strike, row.pe.ltp)}
+                    aria-label={`Buy ${instrument} ${row.strike} PE at ${row.pe.ltp.toFixed(2)}`}
                     className={cn(
-                      "w-full cursor-pointer rounded-[var(--radius-sm)] px-2.5 py-1.5 text-left font-mono font-medium transition-colors hover:bg-negative/15",
+                      "min-h-10 w-full cursor-pointer rounded-[var(--radius-sm)] px-2.5 py-1.5 text-left font-mono font-medium transition-colors hover:bg-negative/15",
                       peItm ? "text-foreground" : "text-negative",
                     )}
                   >
                     {row.pe.ltp.toFixed(2)}
                   </button>
                 </td>
-                <td className="px-3 py-2 text-left text-muted-2">{row.pe.iv.toFixed(1)}</td>
-                <td className="px-3 py-2 text-left text-muted-2">{formatCompact(row.pe.volume)}</td>
-                <td className="px-3 py-2 text-left text-muted-2">{formatCompact(row.pe.oi)}</td>
+                <td className="px-3 py-2 text-left text-muted">{row.pe.iv.toFixed(1)}</td>
+                <td className="px-3 py-2 text-left text-muted">{formatCompact(row.pe.volume)}</td>
+                <td className="px-3 py-2 text-left text-muted">{formatCompact(row.pe.oi)}</td>
               </tr>
             );
           })}

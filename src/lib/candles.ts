@@ -29,6 +29,7 @@ export function generateSession({
   drift = 0.00006,
   seed = 1,
   dateOffsetDays = 0,
+  date,
 }: {
   basePrice: number;
   candles?: number;
@@ -39,12 +40,24 @@ export function generateSession({
   drift?: number;
   seed?: number;
   dateOffsetDays?: number;
+  /** Fixed session date (YYYY-MM-DD, IST). Overrides dateOffsetDays. */
+  date?: string;
 }): Candle[] {
   const rand = mulberry32(seed);
-  const start = new Date();
-  start.setDate(start.getDate() - dateOffsetDays);
-  start.setHours(startHour, startMinute, 0, 0);
-  const startTime = Math.floor(start.getTime() / 1000);
+  // Session times are exchange time (IST, UTC+5:30) regardless of where the
+  // code runs, so server and browser generate identical candles.
+  const IST_OFFSET_MINUTES = 330;
+  const day = date ? new Date(`${date}T00:00:00Z`) : new Date(Date.now() + IST_OFFSET_MINUTES * 60_000);
+  const startMs =
+    Date.UTC(
+      day.getUTCFullYear(),
+      day.getUTCMonth(),
+      day.getUTCDate() - (date ? 0 : dateOffsetDays),
+      startHour,
+      startMinute,
+    ) -
+    IST_OFFSET_MINUTES * 60_000;
+  const startTime = Math.floor(startMs / 1000);
 
   let price = basePrice;
   const out: Candle[] = [];
@@ -85,7 +98,9 @@ export const liveSessionCandles: Record<string, Candle[]> = {
 };
 
 export const replaySessionCandles: Record<string, Candle[]> = {
-  "18-sep-nifty": generateSession({ basePrice: 24500, seed: 101, dateOffsetDays: 6, drift: 0.00015, volatility: 0.0014 }),
-  "02-sep-bank-nifty": generateSession({ basePrice: 50800, seed: 202, dateOffsetDays: 22, drift: 0.00001, volatility: 0.0007 }),
-  "21-aug-sensex": generateSession({ basePrice: 80100, seed: 303, dateOffsetDays: 34, drift: 0.00022, volatility: 0.0016 }),
+  // Dates and start times match the session cards in replay-desk and on /replay;
+  // each session stops by the 15:30 close.
+  "18-sep-nifty": generateSession({ basePrice: 24500, seed: 101, date: "2026-09-18", startHour: 9, startMinute: 30, drift: 0.00015, volatility: 0.0014 }),
+  "02-sep-bank-nifty": generateSession({ basePrice: 50800, seed: 202, date: "2026-09-02", startHour: 10, startMinute: 15, drift: 0.00001, volatility: 0.0007 }),
+  "21-aug-sensex": generateSession({ basePrice: 80100, seed: 303, date: "2026-08-21", startHour: 14, startMinute: 0, candles: 30, drift: 0.00022, volatility: 0.0016 }),
 };

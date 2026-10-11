@@ -4,14 +4,15 @@ import { PageHeader } from "@/components/marketing/page-header";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { InstrumentSymbol } from "@/components/instrument-symbol";
 import { Sparkline } from "@/components/charts/sparkline";
 import { tradeGuardAlerts, alertSparklines } from "@/lib/mock-data";
 
 export const metadata: Metadata = {
-  title: "Trade Guard — Trenvora",
+  title: "Trade Guard",
   description:
-    "Real-time market-condition alerts for momentum, volatility, and volume. Trade Guard observes what changed — it never tells you what to trade.",
+    "Market-condition alerts for momentum, volatility, and volume. Trade Guard observes what changed — it never tells you what to trade.",
 };
 
 const principles = [
@@ -43,10 +44,11 @@ export default function TradeGuardPage() {
 
       <section className="py-16 sm:py-20">
         <Container>
+          <h2 className="sr-only">How every alert is explained</h2>
           <div className="grid gap-5 sm:grid-cols-3">
             {principles.map(({ icon: Icon, title, body }) => (
               <Card key={title}>
-                <Icon className="h-5 w-5 text-warning" strokeWidth={1.75} />
+                <Icon className="h-5 w-5 text-warning" strokeWidth={1.75} aria-hidden="true" />
                 <h3 className="mt-4 text-sm font-medium">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
               </Card>
@@ -58,7 +60,7 @@ export default function TradeGuardPage() {
       <section className="border-t border-border py-16 sm:py-20">
         <Container>
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Live alert feed
+            Sample alerts
           </h2>
           <p className="mt-2 max-w-xl text-muted">
             A sample of the kind of observation Trade Guard surfaces during a
@@ -74,16 +76,16 @@ export default function TradeGuardPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <Badge tone={alert.severity === "warning" ? "warning" : "intelligence"}>
-                          <ShieldAlert className="h-3.5 w-3.5" />
-                          {alert.instrument}
+                          <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" />
+                          {alert.severity === "warning" ? "Warning" : "Info"}
                         </Badge>
-                        <span className="text-xs text-muted-2">
+                        <span className="text-xs text-muted">
                           Detected {alert.detected}
                         </span>
                       </div>
                       <h3 className="mt-3 text-lg font-medium">{alert.headline}</h3>
                       <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted">
-                        &ldquo;What changed?&rdquo; {alert.explanation}
+                        {alert.explanation}
                       </p>
                     </div>
                   </div>
@@ -95,25 +97,29 @@ export default function TradeGuardPage() {
 
                 <div className="mt-5 grid grid-cols-2 gap-4 border-t border-border pt-5 sm:grid-cols-4">
                   <div>
-                    <p className="text-xs text-muted-2">Trend</p>
+                    <p className="text-xs text-muted">Trend</p>
                     <p className="mt-1 text-sm font-medium">{alert.trend}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-2">Momentum</p>
+                    <p className="text-xs text-muted">Momentum</p>
                     <p className="mt-1 text-sm font-medium">{alert.momentum}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-2">Volatility</p>
+                    <p className="text-xs text-muted">Volatility</p>
                     <p className="mt-1 text-sm font-medium">{alert.volatility}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-2">Volume</p>
+                    <p className="text-xs text-muted">Volume</p>
                     <p className="mt-1 text-sm font-medium">{alert.volume}</p>
                   </div>
                 </div>
               </Card>
             ))}
           </div>
+
+          <ButtonLink href="/practice" size="md" className="mt-10">
+            See Trade Guard while you practise
+          </ButtonLink>
         </Container>
       </section>
     </>

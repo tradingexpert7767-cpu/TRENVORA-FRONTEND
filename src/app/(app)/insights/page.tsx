@@ -12,6 +12,8 @@ import { EmotionTimeline } from "@/components/trading/emotion-timeline";
 import { useTradeStore } from "@/lib/trade-store";
 import { analyzeTrades, type Insight } from "@/lib/behavior-analysis";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/hooks/use-hydrated";
+import { PageLoader } from "@/components/ui/page-loader";
 
 const toneIcon: Record<Insight["tone"], typeof CheckCircle2> = {
   positive: CheckCircle2,
@@ -26,8 +28,12 @@ function formatInr(n: number) {
 }
 
 export default function InsightsPage() {
+  const hydrated = useHydrated();
   const history = useTradeStore((s) => s.history);
   const report = useMemo(() => analyzeTrades(history), [history]);
+
+  // Trades live in localStorage, so wait for hydration before branching on them.
+  if (!hydrated) return <PageLoader />;
 
   if (!report.hasEnoughData) {
     return (
@@ -40,12 +46,12 @@ export default function InsightsPage() {
 
         <Card className="mt-8 flex flex-col items-center gap-4 py-14 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-intelligence/10 text-intelligence">
-            <Sparkles className="h-5 w-5" />
+            <Sparkles className="h-5 w-5" aria-hidden="true" />
           </div>
           <div>
-            <p className="font-medium">{report.insights[0].title}</p>
+            <h2 className="font-medium">{report.insights[0].title}</h2>
             <p className="mt-1.5 max-w-xs text-sm text-muted">{report.insights[0].detail}</p>
-            <p className="mt-1.5 max-w-xs text-sm text-muted-2">{report.insights[0].action}</p>
+            <p className="mt-1.5 max-w-xs text-sm text-muted">{report.insights[0].action}</p>
           </div>
           <ButtonLink href="/practice" size="sm">
             Start practicing
@@ -72,36 +78,46 @@ export default function InsightsPage() {
       <div className="mt-6 grid gap-5 lg:grid-cols-[auto_1fr]">
         <Card className="flex flex-col items-center justify-center gap-3 text-center">
           <ScoreRing score={report.disciplineScore} />
-          <p className="text-xs uppercase tracking-wider text-muted-2">Discipline score</p>
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted">Discipline score</h2>
         </Card>
 
         <Card>
-          <p className="text-xs uppercase tracking-wider text-muted-2">Performance</p>
-          <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <h2 className="text-xs font-medium uppercase tracking-wider text-muted">Performance</h2>
+          <dl className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div>
-              <p className="text-xs text-muted-2">Trades closed</p>
-              <p className="mt-1 font-mono text-lg font-semibold">{report.stats.totalTrades}</p>
+              <dt className="text-xs text-muted">Trades closed</dt>
+              <dd className="mt-1 font-mono text-lg font-semibold tabular-nums">{report.stats.totalTrades}</dd>
             </div>
             <div>
-              <p className="text-xs text-muted-2">Win rate</p>
-              <p className="mt-1 font-mono text-lg font-semibold">{report.stats.winRate}%</p>
+              <dt className="text-xs text-muted">Win rate</dt>
+              <dd className="mt-1 font-mono text-lg font-semibold tabular-nums">{report.stats.winRate}%</dd>
             </div>
             <div>
-              <p className="text-xs text-muted-2">Avg win</p>
-              <p className="mt-1 font-mono text-lg font-semibold text-positive">
-                {formatInr(report.stats.avgWin)}
-              </p>
+              <dt className="text-xs text-muted">Avg win</dt>
+              <dd
+                className={cn(
+                  "mt-1 font-mono text-lg font-semibold tabular-nums",
+                  report.stats.avgWin > 0 ? "text-positive" : "text-muted",
+                )}
+              >
+                {report.stats.avgWin > 0 ? formatInr(report.stats.avgWin) : "—"}
+              </dd>
             </div>
             <div>
-              <p className="text-xs text-muted-2">Avg loss</p>
-              <p className="mt-1 font-mono text-lg font-semibold text-negative">
-                {formatInr(report.stats.avgLoss)}
-              </p>
+              <dt className="text-xs text-muted">Avg loss</dt>
+              <dd
+                className={cn(
+                  "mt-1 font-mono text-lg font-semibold tabular-nums",
+                  report.stats.avgLoss < 0 ? "text-negative" : "text-muted",
+                )}
+              >
+                {report.stats.avgLoss < 0 ? formatInr(report.stats.avgLoss) : "—"}
+              </dd>
             </div>
-          </div>
+          </dl>
           {report.stats.profitFactor !== null && (
             <div className="mt-4 flex items-center gap-2 border-t border-border pt-4 text-sm text-muted">
-              <TrendingUp className="h-4 w-4 text-muted-2" />
+              <TrendingUp className="h-4 w-4 text-muted" aria-hidden="true" />
               Profit factor{" "}
               <span className="font-mono font-medium text-foreground">
                 {report.stats.profitFactor.toFixed(2)}
@@ -125,7 +141,7 @@ export default function InsightsPage() {
       <div className="mt-8">
         <h2 className="text-lg font-semibold tracking-tight">Behavioural insights</h2>
         <p className="mt-1 text-sm text-muted">
-          Every observation below is backed by trades you can click into.
+          Every observation below is computed from the trades listed under Evidence.
         </p>
 
         <div className="mt-4 flex flex-col gap-3">
@@ -151,13 +167,13 @@ export default function InsightsPage() {
                     insight.tone === "intelligence" && "bg-intelligence/10 text-intelligence",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4" aria-hidden="true" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{insight.title}</p>
+                  <h3 className="text-sm font-medium">{insight.title}</h3>
                   <p className="mt-1 text-sm leading-relaxed text-muted">{insight.detail}</p>
                   <div className="mt-2.5 flex items-start gap-1.5 rounded-[var(--radius-sm)] bg-surface-2 px-3 py-2">
-                    <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
                     <p className="text-xs leading-relaxed text-muted">
                       <span className="font-medium text-foreground">How to improve: </span>
                       {insight.action}
@@ -180,6 +196,8 @@ export default function InsightsPage() {
               <Th>Instrument</Th>
               <Th>Side</Th>
               <Th>Emotion</Th>
+              <Th>Closed</Th>
+              <Th>Thesis</Th>
               <Th className="text-right">Entry</Th>
               <Th className="text-right">Exit</Th>
               <Th className="text-right">P&amp;L</Th>
@@ -188,17 +206,27 @@ export default function InsightsPage() {
           <TableBody>
             {history.map((t) => (
               <TableRow key={t.id}>
-                <Td className="flex items-center gap-2 font-medium">
-                  <InstrumentSymbol instrument={t.instrument} />
-                  {t.instrument}
+                <Td className="font-medium">
+                  <span className="flex items-center gap-2">
+                    <InstrumentSymbol instrument={t.instrument} />
+                    {t.instrument}
+                  </span>
                 </Td>
                 <Td>
                   <Badge tone={t.side === "BUY" ? "positive" : "negative"}>{t.side}</Badge>
                 </Td>
                 <Td className="text-muted">{t.emotion}</Td>
-                <Td className="text-right font-mono">{t.entryPrice.toFixed(1)}</Td>
-                <Td className="text-right font-mono">{t.exitPrice.toFixed(1)}</Td>
-                <Td className={cn("text-right font-mono font-medium", t.pnl >= 0 ? "text-positive" : "text-negative")}>
+                <Td className="text-muted tabular-nums">
+                  {new Date(t.closedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                </Td>
+                <Td className="min-w-[200px] max-w-[280px] whitespace-normal text-xs text-muted">
+                  <span className="line-clamp-2" title={t.thesis}>
+                    {t.thesis}
+                  </span>
+                </Td>
+                <Td className="text-right font-mono tabular-nums">{t.entryPrice.toFixed(2)}</Td>
+                <Td className="text-right font-mono tabular-nums">{t.exitPrice.toFixed(2)}</Td>
+                <Td className={cn("text-right font-mono font-medium tabular-nums", t.pnl >= 0 ? "text-positive" : "text-negative")}>
                   {formatInr(t.pnl)}
                 </Td>
               </TableRow>

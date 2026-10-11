@@ -5,12 +5,13 @@ import { PageHeader } from "@/components/marketing/page-header";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { InstrumentSymbol } from "@/components/instrument-symbol";
 import { Sparkline } from "@/components/charts/sparkline";
 import { replaySessions, alertSparklines } from "@/lib/mock-data";
 
 export const metadata: Metadata = {
-  title: "Market Replay — Trenvora",
+  title: "Market Replay",
   description:
     "Replay historical market sessions candle by candle, trade the moment blind to what comes next, and get a replay scorecard on entry, exit, and discipline.",
 };
@@ -37,17 +38,17 @@ export default function ReplayPage() {
 
       <section className="py-16 sm:py-20">
         <Container>
-          <h2 className="text-xl font-semibold tracking-tight">Choose a session</h2>
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Choose a session</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             {replaySessions.map((session) => (
               <Card key={session.date} className="flex flex-col gap-3">
-                <div className="flex items-center justify-between text-xs text-muted-2">
+                <div className="flex items-center justify-between text-xs text-muted">
                   <span className="inline-flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5" />
+                    <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
                     {session.date}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5" />
+                    <Clock className="h-3.5 w-3.5" aria-hidden="true" />
                     {session.time}
                   </span>
                 </div>
@@ -62,11 +63,15 @@ export default function ReplayPage() {
                   {session.description}
                 </p>
                 <Link
-                  href="/replay-desk"
-                  className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                  href={`/replay-desk?session=${session.id}`}
+                  className="mt-auto inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-primary hover:underline"
                 >
-                  <Play className="h-3.5 w-3.5" />
+                  <Play className="h-3.5 w-3.5" aria-hidden="true" />
                   Start replay
+                  <span className="sr-only">
+                    {" "}
+                    of {session.instrument} on {session.date}
+                  </span>
                 </Link>
               </Card>
             ))}
@@ -88,15 +93,18 @@ export default function ReplayPage() {
             not just whether you made money.
           </p>
 
-          <Card className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
-            {scorecard.map((item) => (
-              <div key={item.label}>
-                <p className="text-xs text-muted-2">{item.label}</p>
-                <p className="mt-1.5 font-mono text-lg font-semibold">
-                  {item.value}
-                </p>
-              </div>
-            ))}
+          <Card className="mt-8">
+            <Badge tone="neutral">Example scorecard — sample data</Badge>
+            <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
+              {scorecard.map((item) => (
+                <div key={item.label}>
+                  <dt className="text-xs text-muted">{item.label}</dt>
+                  <dd className="mt-1.5 font-mono text-lg font-semibold tabular-nums">
+                    {item.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </Card>
         </Container>
       </section>

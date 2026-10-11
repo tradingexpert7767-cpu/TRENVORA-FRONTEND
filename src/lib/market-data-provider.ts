@@ -23,9 +23,18 @@ export type OptionChainRow = {
 
 export type Expiry = { id: string; label: string };
 
+export type OptionLegType = "CE" | "PE";
+
 export interface MarketDataProvider {
   getExpiries(instrument: string): Expiry[];
   getOptionChain(instrument: string, expiryId: string, spot: number): OptionChainRow[];
+  getOptionPremium(
+    instrument: string,
+    expiryId: string,
+    spot: number,
+    strike: number,
+    leg: OptionLegType,
+  ): number;
 }
 
 const STRIKE_INTERVAL: Record<string, number> = {
@@ -83,14 +92,15 @@ class MockMarketDataProvider implements MarketDataProvider {
     const interval = STRIKE_INTERVAL[instrument] ?? 50;
     const atm = Math.round(spot / interval) * interval;
     const expiryFactor = expiryId === "w1" ? 1 : expiryId === "w2" ? 1.8 : 3.2;
-    // Seeded by instrument+expiry only (not spot) so OI/volume/IV stay
-    // stable tick to tick — only premiums move as the spot price ticks.
+    // Seeded by instrument+expiry+strike (not spot or row position) so each
+    // strike's OI/volume/IV stay stable tick to tick and don't reshuffle when
+    // the ATM strike shifts — only premiums move as the spot price ticks.
     const seedBase = hashString(instrument + expiryId);
-    const rand = mulberry32(seedBase);
 
     const rows: OptionChainRow[] = [];
     for (let i = -7; i <= 7; i++) {
       const strike = atm + i * interval;
+      const rand = mulberry32(seedBase ^ strike);
       const distance = Math.abs(strike - spot);
       const ivBase = 12 + (distance / spot) * 180; // smile: further from ATM = higher IV
       const timeValue = Math.max(4, (40 - distance / (interval * 0.6)) * expiryFactor);
@@ -125,6 +135,21 @@ class MockMarketDataProvider implements MarketDataProvider {
     }
 
     return rows;
+  }
+
+  // Marks an open option position. Strikes that have drifted outside the
+  // ±7-strike window fall back to intrinsic value plus the minimum time value.
+  getOptionPremium(
+    instrument: string,
+    expiryId: string,
+    spot: number,
+    strike: number,
+    leg: OptionLegType,
+  ): number {
+    const row = this.getOptionChain(instrument, expiryId, spot).find((r) => r.strike === strike);
+    if (row) return leg === "CE" ? row.ce.ltp : row.pe.ltp;
+    const intrinsic = leg === "CE" ? Math.max(0, spot - strike) : Math.max(0, strike - spot);
+    return round2(intrinsic + 4);
   }
 }
 

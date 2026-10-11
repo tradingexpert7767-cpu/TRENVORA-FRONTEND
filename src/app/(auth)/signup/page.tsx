@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { SignupForm } from "@/components/auth/signup-form";
 
 export const metadata: Metadata = {
-  title: "Start practicing — Trenvora",
+  title: "Start practicing",
 };
 
 export default function SignupPage() {
@@ -24,10 +24,10 @@ export default function SignupPage() {
         </Link>
       </p>
 
-      <p className="mt-4 text-center text-xs text-muted-2">
+      <p className="mt-4 text-center text-xs text-muted">
         By continuing you agree to Trenvora&apos;s{" "}
-        <Link href="/terms" className="underline hover:text-muted">Terms</Link> and{" "}
-        <Link href="/privacy" className="underline hover:text-muted">Privacy Policy</Link>.
+        <Link href="/terms" className="underline hover:text-foreground">Terms</Link> and{" "}
+        <Link href="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
       </p>
     </Card>
   );

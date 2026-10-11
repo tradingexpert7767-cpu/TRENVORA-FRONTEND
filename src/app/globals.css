@@ -1,22 +1,25 @@
 @import "tailwindcss";
 
+/* Trading-terminal palette. Dark is the brand default; light is designed
+   separately (not an inverted dark) — see :root[data-theme="light"] below. */
 :root {
-  --background: #08090c;
-  --surface: #101217;
-  --surface-2: #16181f;
-  --border: #23262f;
-  --border-strong: #2e323d;
-  --foreground: #f4f5f7;
-  --muted: #9297a3;
-  --muted-2: #6a6f7b;
+  --background: #050b14;
+  --surface: #081522;
+  --surface-2: #0d1c2b;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --foreground: #f4f8fb;
+  --muted: #8ea3b7;
+  /* Tertiary text. Must stay >= 4.5:1 on surface-2 (WCAG AA). */
+  --muted-2: #7790a6;
 
-  --primary: #5b8def;
-  --primary-foreground: #06070a;
+  --primary: #19e6b3;
+  --primary-foreground: #04140f;
 
-  --positive: #22c55e;
-  --negative: #ef4444;
-  --warning: #f59e0b;
-  --intelligence: #8b7cf6;
+  --positive: #21d68f;
+  --negative: #ff5263;
+  --warning: #f5a623;
+  --intelligence: #7c9dff;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -27,22 +30,24 @@
 }
 
 :root[data-theme="light"] {
-  --background: #f7f8fa;
+  --background: #f7fafc;
   --surface: #ffffff;
-  --surface-2: #f1f3f6;
-  --border: #e3e6eb;
-  --border-strong: #d3d7de;
-  --foreground: #0f1115;
-  --muted: #5b6270;
-  --muted-2: #88909b;
+  --surface-2: #f1f6fa;
+  --border: #dce7ef;
+  --border-strong: #c3d4e0;
+  --foreground: #0b1b2b;
+  --muted: #566a7d;
+  --muted-2: #5f7386;
 
-  --primary: #2563eb;
+  /* Light accents are darker than their dark-theme twins so they hold
+     >= 4.5:1 as text on white and on their own /10 tints. */
+  --primary: #00735a;
   --primary-foreground: #ffffff;
 
-  --positive: #15803d;
-  --negative: #dc2626;
-  --warning: #b45309;
-  --intelligence: #7c3aed;
+  --positive: #057250;
+  --negative: #c62a40;
+  --warning: #8a5600;
+  --intelligence: #4857cc;
 }
 
 @theme inline {
@@ -71,6 +76,11 @@
   --radius-lg: var(--radius-lg);
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -84,6 +94,44 @@ body {
 
 * {
   border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+button,
+a,
+[role="button"],
+input,
+select,
+textarea,
+label {
+  touch-action: manipulation;
+}
+
+/* One focus treatment for every interactive element, so custom controls
+   never fall back to the faint browser default on dark surfaces. Layered
+   as base so component-level ring utilities still win. */
+@layer base {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-33.333%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

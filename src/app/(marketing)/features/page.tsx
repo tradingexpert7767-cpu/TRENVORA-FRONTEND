@@ -12,7 +12,10 @@ import {
 import { PageHeader } from "@/components/marketing/page-header";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
+import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { InstrumentSymbol } from "@/components/instrument-symbol";
 import { DnaRadarChart } from "@/components/charts/dna-radar-chart";
 import { tradingDna } from "@/lib/mock-data";
@@ -20,7 +23,7 @@ import { tradingDna } from "@/lib/mock-data";
 const instruments = ["NIFTY", "BANK NIFTY", "SENSEX"];
 
 export const metadata: Metadata = {
-  title: "Features — Trenvora",
+  title: "Features",
   description:
     "Paper trading, Trade Guard, AI Coach, Trading DNA, Market Replay, Strategy Lab, journal, and challenges — everything Trenvora uses to build trading discipline.",
 };
@@ -29,30 +32,35 @@ const modules = [
   {
     icon: LineChart,
     title: "Paper Trading",
+    href: "/practice",
     description:
       "Simulate NIFTY, BANK NIFTY, SENSEX, equities, futures, and options with realistic order behaviour, live P&L, and a mandatory pre-trade checklist — no real money at risk.",
   },
   {
     icon: ShieldAlert,
     title: "Trade Guard",
+    href: "/trade-guard",
     description:
-      "Your safety net while you trade — real-time market-condition alerts for momentum shifts, volatility spikes, and unusual volume. Observations, never buy/sell instructions.",
+      "Your safety net while you trade — market-condition alerts for momentum shifts, volatility spikes, and unusual volume. Observations, never buy/sell instructions.",
   },
   {
     icon: Sparkles,
     title: "AI Trading Coach",
+    href: "/ai-coach",
     description:
       "Reads your trade history — paper trades today, imported real trades later — to spot your mental state at entry (FOMO, revenge, calm) and tell you exactly what pattern to fix next. Grounded in your own data, never invented.",
   },
   {
     icon: History,
     title: "Market Replay",
+    href: "/replay",
     description:
       "Pick a date, instrument, and time, then trade the historical session candle by candle — a flight simulator for your entries, exits, and discipline.",
   },
   {
     icon: FlaskConical,
     title: "Strategy Lab",
+    href: "/strategy-lab",
     description:
       "Define rule-based strategies and backtest them against historical data: win rate, profit factor, drawdown, and an AI explanation of the results.",
   },
@@ -75,17 +83,31 @@ export default function FeaturesPage() {
 
       <section className="py-16 sm:py-20">
         <Container>
+          <h2 className="sr-only">Modules</h2>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {modules.map(({ icon: Icon, title, description }) => (
+            {modules.map(({ icon: Icon, title, description, href }) => (
               <Card
                 key={title}
-                className="flex flex-col gap-4 transition-all duration-200 hover:-translate-y-1 hover:border-border-strong hover:shadow-xl hover:shadow-black/20"
+                className={cn(
+                  "relative flex flex-col gap-4",
+                  href &&
+                    "transition-[border-color,box-shadow,transform] duration-200 focus-within:border-primary hover:-translate-y-1 hover:border-border-strong hover:shadow-xl hover:shadow-black/20 motion-reduce:hover:translate-y-0",
+                )}
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-primary/10 text-primary">
-                  <Icon className="h-5 w-5" strokeWidth={1.75} />
+                  <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="text-base font-medium">{title}</h3>
+                  <h3 className="text-base font-medium">
+                    {href ? (
+                      // Stretched link: the whole card is clickable, one tab stop.
+                      <Link href={href} className="after:absolute after:inset-0 after:rounded-[var(--radius-lg)] focus-visible:outline-none">
+                        {title}
+                      </Link>
+                    ) : (
+                      title
+                    )}
+                  </h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted">
                     {description}
                   </p>
@@ -95,7 +117,7 @@ export default function FeaturesPage() {
                     {instruments.map((instrument) => (
                       <InstrumentSymbol key={instrument} instrument={instrument} />
                     ))}
-                    <span className="text-xs text-muted-2">+ equities, F&amp;O</span>
+                    <span className="text-xs text-muted">+ equities, F&amp;O</span>
                   </div>
                 )}
               </Card>
@@ -107,27 +129,26 @@ export default function FeaturesPage() {
       <section id="trading-dna" className="scroll-mt-20 border-t border-border py-16 sm:py-20">
         <Container>
           <div className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-intelligence/10 text-intelligence">
-            <Dna className="h-5 w-5" strokeWidth={1.75} />
+            <Dna className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
           </div>
           <h2 className="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">
             Trading DNA
           </h2>
           <p className="mt-3 max-w-md text-muted leading-relaxed">
             A long-term behavioural profile built from your actual trades —
-            not a vibe. Every score is backed by measurable evidence you can
-            click into.
+            not a vibe. Every score is backed by measurable evidence from
+            your own trade history.
           </p>
 
           <Card className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <div className="flex-1">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border-strong px-2.5 py-1 text-xs font-medium text-muted-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border-strong px-2.5 py-1 text-xs font-medium text-muted">
                 Example — not your data
               </span>
               <p className="mt-3 text-sm leading-relaxed text-muted">
                 This score fills in for real once you&apos;ve closed a few
                 paper trades — Discipline, Risk Control, Entry &amp; Exit
-                Quality, all backed by evidence you can click into, the same
-                way it works here.
+                Quality, each backed by the trades that produced it.
               </p>
             </div>
             <div className="w-full shrink-0 sm:w-56">
@@ -145,11 +166,12 @@ export default function FeaturesPage() {
         <Container>
           <div className="flex items-start gap-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-warning/10 text-warning">
-              <Trophy className="h-5 w-5" strokeWidth={1.75} />
+              <Trophy className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              <h2 className="flex flex-wrap items-center gap-3 text-2xl font-semibold tracking-tight sm:text-3xl">
                 Challenges
+                <Badge tone="warning">Coming soon</Badge>
               </h2>
               <p className="mt-3 max-w-2xl text-muted leading-relaxed">
                 Process-based challenges — like a 7-Day Discipline Challenge

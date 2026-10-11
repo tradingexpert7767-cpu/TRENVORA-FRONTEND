@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useAuthStore } from "@/lib/auth-store";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 export function LoginForm() {
   const router = useRouter();
@@ -51,30 +53,36 @@ export function LoginForm() {
       <div>
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
-          <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+          <Link href="/forgot-password" className="-my-2 inline-flex min-h-10 items-center text-xs font-medium text-primary hover:underline">
             Forgot password?
           </Link>
         </div>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
-          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? "login-error" : undefined}
         />
       </div>
       {error && (
-        <p role="alert" className="text-sm text-negative">
+        <p id="login-error" role="alert" className="text-sm text-negative">
           {error}
         </p>
       )}
       <Button type="submit" disabled={loading} className="mt-2">
-        {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {loading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
         {loading ? "Logging in…" : "Log in"}
       </Button>
+      <div className="flex items-center gap-3 text-xs text-muted">
+        <span className="h-px flex-1 bg-border" />
+        or
+        <span className="h-px flex-1 bg-border" />
+      </div>
+      <GoogleSignInButton />
     </form>
   );
 }

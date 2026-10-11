@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/marketing/page-header";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { EquityCurveChart } from "@/components/charts/equity-curve-chart";
 import { strategyBacktest, equityCurve } from "@/lib/mock-data";
 
 export const metadata: Metadata = {
-  title: "Strategy Lab — Trenvora",
+  title: "Strategy Lab",
   description:
     "Build rule-based strategies and backtest them against historical data — win rate, profit factor, drawdown, and an AI explanation of the results.",
 };
@@ -35,12 +37,10 @@ export default function StrategyLabPage() {
         <Container>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-wider text-muted-2">
-                Equity curve
-              </p>
-              <h2 className="mt-1 text-lg font-medium">{strategyBacktest.name}</h2>
+              <Badge tone="neutral">Example backtest — illustrative data</Badge>
+              <h2 className="mt-3 text-lg font-medium">Equity curve: {strategyBacktest.name}</h2>
             </div>
-            <span className="font-mono text-sm font-medium text-positive">
+            <span className="font-mono text-sm font-medium tabular-nums text-positive">
               +₹{strategyBacktest.netPnl.toLocaleString("en-IN")}
             </span>
           </div>
@@ -53,10 +53,10 @@ export default function StrategyLabPage() {
       <section className="py-16 sm:py-20">
         <Container className="grid gap-10 lg:grid-cols-2 lg:gap-16">
           <Card>
-            <p className="text-xs uppercase tracking-wider text-muted-2">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted">
               Strategy definition
-            </p>
-            <h2 className="mt-2 text-lg font-medium">{strategyBacktest.name}</h2>
+            </h2>
+            <p className="mt-2 text-lg font-medium">{strategyBacktest.name}</p>
 
             <pre className="mt-5 overflow-x-auto rounded-[var(--radius-md)] border border-border bg-surface-2 p-4 font-mono text-xs leading-relaxed text-muted">
 {`IF
@@ -68,28 +68,28 @@ Stop Loss: ${strategyBacktest.stopLoss}
 Target: ${strategyBacktest.target}`}
             </pre>
 
-            <button
-              type="button"
-              className="mt-5 inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-[var(--radius-md)] bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Backtest strategy
-            </button>
+            <ButtonLink href="/signup" size="md" className="mt-5 w-full">
+              Build your own strategy
+            </ButtonLink>
+            <p className="mt-2 text-center text-xs text-muted">
+              Free account — backtests run on simulated historical data.
+            </p>
           </Card>
 
           <div>
-            <p className="text-xs uppercase tracking-wider text-muted-2">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted">
               Backtest results
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-4">
+            </h2>
+            <dl className="mt-4 grid grid-cols-2 gap-4">
               {metrics.map((metric) => (
                 <Card key={metric.label} className="p-4">
-                  <p className="text-xs text-muted-2">{metric.label}</p>
-                  <p className="mt-1.5 font-mono text-lg font-semibold">
+                  <dt className="text-xs text-muted">{metric.label}</dt>
+                  <dd className="mt-1.5 font-mono text-lg font-semibold tabular-nums">
                     {metric.value}
-                  </p>
+                  </dd>
                 </Card>
               ))}
-            </div>
+            </dl>
 
             <Card className="mt-4 border-intelligence/20 bg-intelligence/5">
               <p className="text-xs font-medium text-intelligence">

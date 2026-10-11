@@ -22,13 +22,20 @@ import { ScoreRing } from "@/components/trading/score-ring";
 import { NewsGrid } from "@/components/marketing/news-grid";
 import { useAuthStore } from "@/lib/auth-store";
 import { useTradeStore } from "@/lib/trade-store";
-import { availableBalance, usedMargin, totalEquity } from "@/lib/wallet";
+import { availableBalance, usedMargin, totalEquity, STARTING_BALANCE } from "@/lib/wallet";
+import { useHydrated } from "@/hooks/use-hydrated";
+import { PageLoader } from "@/components/ui/page-loader";
 import { analyzeTrades } from "@/lib/behavior-analysis";
 import type { LiveNewsItem } from "@/lib/news";
 import { cn } from "@/lib/utils";
 
 function formatInr(n: number) {
-  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+  const sign = n < 0 ? "-" : "";
+  return `${sign}₹${Math.abs(Math.round(n)).toLocaleString("en-IN")}`;
+}
+
+function formatSignedInr(n: number) {
+  return `${n >= 0 ? "+" : ""}${formatInr(n)}`;
 }
 
 const fadeUp: Variants = {
@@ -36,11 +43,12 @@ const fadeUp: Variants = {
   show: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.35, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { duration: 0.25, delay: i * 0.04, ease: [0.16, 1, 0.3, 1] as const },
   }),
 };
 
 export default function ProfilePage() {
+  const hydrated = useHydrated();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
 
@@ -63,7 +71,10 @@ export default function ProfilePage() {
   useEffect(() => {
     let cancelled = false;
     fetch("/api/news")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`News request failed: ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         if (!cancelled) setNews(data.news ?? []);
       })
@@ -75,11 +86,15 @@ export default function ProfilePage() {
     };
   }, []);
 
+  // Auth and trades come from localStorage; render nothing user-specific
+  // until hydration so server and client HTML agree.
+  if (!hydrated) return <PageLoader />;
+
   if (!user) {
     return (
       <div className="flex min-h-[70dvh] flex-1 flex-col items-center justify-center p-8 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <ShieldCheck className="h-5 w-5" />
+          <ShieldCheck className="h-5 w-5" aria-hidden="true" />
         </div>
         <h1 className="mt-4 text-xl font-semibold">You&apos;re not logged in</h1>
         <p className="mt-1.5 max-w-xs text-sm text-muted">
@@ -109,14 +124,14 @@ export default function ProfilePage() {
               <Badge tone="intelligence">{user.subscriptionTier}</Badge>
             </div>
             <p className="mt-0.5 text-sm text-muted">{user.email}</p>
-            <p className="mt-1 text-xs text-muted-2">
+            <p className="mt-1 text-xs text-muted">
               {user.tradingExperience} trader &middot; {user.riskPreference.toLowerCase()} risk &middot;
               joined {new Date(user.joinedAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
             </p>
           </div>
         </div>
         <Button variant="secondary" size="sm" onClick={logout}>
-          <LogOut className="h-3.5 w-3.5" />
+          <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
           Log out
         </Button>
       </motion.div>
@@ -124,16 +139,16 @@ export default function ProfilePage() {
       <div className="mt-6 grid gap-5 lg:grid-cols-3">
         <motion.div variants={fadeUp} initial="hidden" animate="show" custom={1}>
           <Card>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-2">
-              <Wallet className="h-3.5 w-3.5" />
+            <h2 className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted">
+              <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
               Paper wallet
-            </div>
+            </h2>
             <AnimatedNumber
               value={wallet.available}
               format={formatInr}
-              className="mt-2 block font-mono text-2xl font-semibold tracking-tight"
+              className="mt-2 block font-mono text-2xl font-semibold tracking-tight tabular-nums"
             />
-            <p className="mt-1 text-xs text-muted-2">
+            <p className="mt-1 text-xs text-muted">
               {formatInr(wallet.used)} in open positions &middot; {formatInr(wallet.equity)} total equity
             </p>
             <ButtonLink href="/practice" variant="secondary" size="sm" className="mt-4 w-full">
@@ -144,34 +159,34 @@ export default function ProfilePage() {
 
         <motion.div variants={fadeUp} initial="hidden" animate="show" custom={2}>
           <Card>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-2">
-              <TrendingUp className="h-3.5 w-3.5" />
+            <h2 className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted">
+              <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
               Trading statistics
-            </div>
+            </h2>
             <div className="mt-3 grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-muted-2">Trades closed</p>
+                <p className="text-xs text-muted">Trades closed</p>
                 <p className="mt-1 font-mono text-lg font-semibold">{behavior.stats.totalTrades}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-2">Win rate</p>
+                <p className="text-xs text-muted">Win rate</p>
                 <p className="mt-1 font-mono text-lg font-semibold">
                   {behavior.hasEnoughData ? `${behavior.stats.winRate}%` : "—"}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-2">Open positions</p>
+                <p className="text-xs text-muted">Open positions</p>
                 <p className="mt-1 font-mono text-lg font-semibold">{positions.length}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-2">Realized P&amp;L</p>
+                <p className="text-xs text-muted">Realized P&amp;L</p>
                 <p
                   className={cn(
                     "mt-1 font-mono text-lg font-semibold",
-                    wallet.equity - 500000 >= 0 ? "text-positive" : "text-negative",
+                    wallet.equity - STARTING_BALANCE >= 0 ? "text-positive" : "text-negative",
                   )}
                 >
-                  {formatInr(wallet.equity - 500000)}
+                  {formatSignedInr(wallet.equity - STARTING_BALANCE)}
                 </p>
               </div>
             </div>
@@ -180,9 +195,16 @@ export default function ProfilePage() {
 
         <motion.div variants={fadeUp} initial="hidden" animate="show" custom={3}>
           <Card className="flex items-center gap-4">
-            <ScoreRing score={behavior.disciplineScore} />
+            {behavior.hasEnoughData ? (
+              <ScoreRing score={behavior.disciplineScore} />
+            ) : (
+              <div className="flex h-36 w-36 shrink-0 flex-col items-center justify-center rounded-full border-[10px] border-border text-center">
+                <span className="font-mono text-2xl font-semibold text-muted">—</span>
+                <span className="text-xs text-muted">Not enough data</span>
+              </div>
+            )}
             <div>
-              <p className="text-xs uppercase tracking-wider text-muted-2">Discipline score</p>
+              <h2 className="text-xs font-medium uppercase tracking-wider text-muted">Discipline score</h2>
               <p className="mt-1 text-sm leading-relaxed text-muted">
                 {behavior.hasEnoughData
                   ? behavior.insights[0].title
@@ -190,10 +212,10 @@ export default function ProfilePage() {
               </p>
               <Link
                 href="/insights"
-                className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-intelligence hover:underline"
+                className="mt-1 inline-flex min-h-10 items-center gap-1 text-sm font-medium text-intelligence hover:underline"
               >
                 View Trading DNA
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
           </Card>
@@ -203,13 +225,13 @@ export default function ProfilePage() {
       <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4} className="mt-5">
         <Card>
           <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-wider text-muted-2">Recent trades</p>
-            <Link href="/practice" className="text-xs font-medium text-primary hover:underline">
-              View all
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted">Recent trades</h2>
+            <Link href="/practice" className="inline-flex min-h-10 items-center text-sm font-medium text-primary hover:underline">
+              View all<span className="sr-only"> trades</span>
             </Link>
           </div>
           {recentTrades.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-2">
+            <p className="mt-4 text-sm text-muted">
               No closed trades yet. Head to Practice to place your first paper trade.
             </p>
           ) : (
@@ -220,19 +242,18 @@ export default function ProfilePage() {
                     <InstrumentSymbol instrument={t.instrument} />
                     <div>
                       <p className="text-sm font-medium">{t.instrument}</p>
-                      <p className="text-xs text-muted-2">
+                      <p className="text-xs text-muted">
                         {t.side} &middot; Qty {t.quantity}
                       </p>
                     </div>
                   </div>
                   <span
                     className={cn(
-                      "font-mono text-sm font-medium",
+                      "font-mono text-sm font-medium tabular-nums",
                       t.pnl >= 0 ? "text-positive" : "text-negative",
                     )}
                   >
-                    {t.pnl >= 0 ? "+" : "-"}
-                    {formatInr(Math.abs(t.pnl))}
+                    {formatSignedInr(t.pnl)}
                   </span>
                 </div>
               ))}
@@ -244,16 +265,16 @@ export default function ProfilePage() {
       <motion.div variants={fadeUp} initial="hidden" animate="show" custom={5} className="mt-5">
         <Card>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-2">
-              <Sparkles className="h-3.5 w-3.5" />
+            <h2 className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
               Your patterns
-            </div>
+            </h2>
             <Link
               href="/insights"
-              className="inline-flex items-center gap-1 text-xs font-medium text-intelligence hover:underline"
+              className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-intelligence hover:underline"
             >
               Full analysis
-              <ChevronRight className="h-3 w-3" />
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
             </Link>
           </div>
           <div className="mt-3 flex flex-col divide-y divide-border">
@@ -273,22 +294,31 @@ export default function ProfilePage() {
       <motion.div variants={fadeUp} initial="hidden" animate="show" custom={6} className="mt-5">
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-2">
-              <Newspaper className="h-3.5 w-3.5" />
+            <h2 className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted">
+              <Newspaper className="h-3.5 w-3.5" aria-hidden="true" />
               Market news
-            </div>
-            <p className="mt-1 text-xs text-muted-2">
-              Live from Economic Times, LiveMint, and BusinessLine.
+            </h2>
+            <p className="mt-1 text-xs text-muted">
+              From Economic Times, LiveMint, and BusinessLine.
             </p>
           </div>
-          <Link href="/news" className="text-xs font-medium text-primary hover:underline">
-            View all
+          <Link href="/news" className="inline-flex min-h-10 items-center text-sm font-medium text-primary hover:underline">
+            View all<span className="sr-only"> news</span>
           </Link>
         </div>
         {news === null ? (
-          <p className="mt-4 text-sm text-muted-2">Loading news…</p>
+          <div role="status" aria-label="Loading news" className="mt-3 grid gap-4 sm:grid-cols-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-32 animate-pulse rounded-[var(--radius-lg)] border border-border bg-surface motion-reduce:animate-none"
+              />
+            ))}
+          </div>
         ) : news.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-2">News feed is unavailable right now.</p>
+          <p className="mt-4 text-sm text-muted">
+            News sources aren&apos;t responding right now — check back in a few minutes.
+          </p>
         ) : (
           <NewsGrid news={news} className="mt-3 sm:grid-cols-2 lg:grid-cols-2" />
         )}

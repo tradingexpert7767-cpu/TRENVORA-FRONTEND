@@ -3,12 +3,14 @@ import { Sparkles, User } from "lucide-react";
 import { PageHeader } from "@/components/marketing/page-header";
 import { Container } from "@/components/ui/container";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { Table, TableHead, TableBody, TableRow, Th, Td } from "@/components/ui/table";
 import { InstrumentSymbol } from "@/components/instrument-symbol";
 import { mistakeLibrary, journalTrades } from "@/lib/mock-data";
 
 export const metadata: Metadata = {
-  title: "AI Coach — Trenvora",
+  title: "AI Coach",
   description:
     "An AI trading coach that analyzes your own trades, journal, and behavioural history — evidence-based answers, never invented statistics.",
 };
@@ -16,11 +18,11 @@ export const metadata: Metadata = {
 const conversation = [
   {
     role: "user" as const,
-    text: "Why did I lose today?",
+    text: "How did my trades on 22 Sep go?",
   },
   {
     role: "coach" as const,
-    text: "Today you took 4 trades and closed net -₹1,240. Two of the four were entered more than 2 minutes after your signal — both were late entries into extended moves. Your largest loss (-₹960 on BANK NIFTY 51,500 PE) also carried 1.8x your average position size.",
+    text: "You took 2 trades on 22 Sep and closed net +₹1,065. The NIFTY 25,000 CE made +₹2,025. The BANK NIFTY 51,500 PE lost -₹960 — it was entered more than 2 minutes after your signal, into a move that had already extended.",
   },
   {
     role: "user" as const,
@@ -44,7 +46,9 @@ export default function AiCoachPage() {
       <section className="py-16 sm:py-20">
         <Container className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
           <Card className="border-border-strong bg-surface/60">
-            <div className="flex flex-col gap-5">
+            <h2 className="sr-only">Example conversation with the AI Coach</h2>
+            <Badge tone="neutral">Example conversation — sample data</Badge>
+            <div className="mt-5 flex flex-col gap-5">
               {conversation.map((message, i) => (
                 <div
                   key={i}
@@ -58,10 +62,11 @@ export default function AiCoachPage() {
                     }`}
                   >
                     {message.role === "coach" ? (
-                      <Sparkles className="h-4 w-4" />
+                      <Sparkles className="h-4 w-4" aria-hidden="true" />
                     ) : (
-                      <User className="h-4 w-4" />
+                      <User className="h-4 w-4" aria-hidden="true" />
                     )}
+                    <span className="sr-only">{message.role === "coach" ? "Coach:" : "You:"}</span>
                   </div>
                   <div
                     className={`max-w-md rounded-[var(--radius-md)] px-4 py-3 text-sm leading-relaxed ${
@@ -92,11 +97,11 @@ export default function AiCoachPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">{mistake.name}</span>
-                    <span className="font-mono text-sm text-muted-2">
+                    <span className="font-mono text-sm tabular-nums text-muted">
                       {mistake.count} trades
                     </span>
                   </div>
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-2">
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted">
                     {mistake.insight}
                   </p>
                 </div>
@@ -130,16 +135,18 @@ export default function AiCoachPage() {
             <TableBody>
               {journalTrades.map((trade) => (
                 <TableRow key={`${trade.instrument}-${trade.date}-${trade.entry}`}>
-                  <Td className="flex items-center gap-2.5 font-medium">
-                    <InstrumentSymbol instrument={trade.instrument} />
-                    {trade.instrument}
+                  <Td className="font-medium">
+                    <span className="flex items-center gap-2.5">
+                      <InstrumentSymbol instrument={trade.instrument} />
+                      {trade.instrument}
+                    </span>
                   </Td>
                   <Td className="text-muted">{trade.date}</Td>
-                  <Td className="text-right font-mono">{trade.entry}</Td>
-                  <Td className="text-right font-mono">{trade.exit}</Td>
-                  <Td className="text-right font-mono">{trade.qty}</Td>
+                  <Td className="text-right font-mono tabular-nums">{trade.entry}</Td>
+                  <Td className="text-right font-mono tabular-nums">{trade.exit}</Td>
+                  <Td className="text-right font-mono tabular-nums">{trade.qty}</Td>
                   <Td
-                    className={`text-right font-mono font-medium ${
+                    className={`text-right font-mono font-medium tabular-nums ${
                       trade.pnl >= 0 ? "text-positive" : "text-negative"
                     }`}
                   >
@@ -149,6 +156,10 @@ export default function AiCoachPage() {
               ))}
             </TableBody>
           </Table>
+
+          <ButtonLink href="/signup" size="md" className="mt-8">
+            Get coached on your own trades
+          </ButtonLink>
         </Container>
       </section>
     </>

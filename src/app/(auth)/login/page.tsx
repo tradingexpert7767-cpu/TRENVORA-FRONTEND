@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
-  title: "Log in — Trenvora",
+  title: "Log in",
 };
 
 export default function LoginPage() {

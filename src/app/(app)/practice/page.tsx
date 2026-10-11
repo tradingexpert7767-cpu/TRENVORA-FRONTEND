@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, Trash2, Sparkles, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -17,11 +17,12 @@ import { WalletCard } from "@/components/trading/wallet-card";
 import { OptionChain } from "@/components/trading/option-chain";
 import { PreTradeModal, type PreTradeSubmit } from "@/components/trading/pre-trade-modal";
 import { liveSessionCandles, type Candle } from "@/lib/candles";
-import { useTradeStore } from "@/lib/trade-store";
+import { useTradeStore, type OptionContract, type Position } from "@/lib/trade-store";
 import { availableBalance as computeAvailableBalance, usedMargin, totalEquity, requiredMargin as computeRequiredMargin } from "@/lib/wallet";
 import { activeProvider } from "@/lib/market-data-provider";
 import { analyzeTrades } from "@/lib/behavior-analysis";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 const instruments = ["NIFTY", "BANK NIFTY", "SENSEX"] as const;
 
@@ -31,12 +32,34 @@ const LOT_SIZE: Record<(typeof instruments)[number], number> = {
   SENSEX: 20,
 };
 
+type Instrument = (typeof instruments)[number];
+
 type TradeTicket = {
   instrumentLabel: string;
   price: number;
   isOption: boolean;
   lotSize: number;
+  option?: OptionContract;
 };
+
+const lastClose = (i: Instrument) => liveSessionCandles[i][liveSessionCandles[i].length - 1].close;
+
+function initialMarks(): Record<Instrument, number> {
+  return { NIFTY: lastClose("NIFTY"), "BANK NIFTY": lastClose("BANK NIFTY"), SENSEX: lastClose("SENSEX") };
+}
+
+function isInstrument(s: string): s is Instrument {
+  return (instruments as readonly string[]).includes(s);
+}
+
+// Positions opened before contracts were stored on the position only have
+// the "NIFTY 24700 CE" label to go on.
+function contractFor(p: Position): OptionContract | null {
+  if (p.option) return p.option;
+  const m = p.instrument.match(/^(.*) (\d+) (CE|PE)$/);
+  if (!m || !isInstrument(m[1])) return null;
+  return { underlying: m[1], strike: Number(m[2]), leg: m[3] as "CE" | "PE", expiryId: "w1" };
+}
 
 function formatInr(n: number) {
   const sign = n >= 0 ? "+" : "-";
@@ -44,60 +67,86 @@ function formatInr(n: number) {
 }
 
 export default function PracticePage() {
-  const [instrument, setInstrument] = useState<(typeof instruments)[number]>("NIFTY");
+  const [instrument, setInstrument] = useState<Instrument>("NIFTY");
   const [mode, setMode] = useState<"spot" | "options">("spot");
   const [expiryId, setExpiryId] = useState("w1");
-  const [candles, setCandles] = useState<Candle[]>(() => [...liveSessionCandles.NIFTY]);
-  const [candlesInstrument, setCandlesInstrument] = useState(instrument);
   const [ticket, setTicket] = useState<TradeTicket | null>(null);
+  // Bumped on every open so the modal remounts fresh, but stays stable while
+  // it closes so the exit animation can play.
+  const [ticketKey, setTicketKey] = useState(0);
   const [resetOpen, setResetOpen] = useState(false);
+  // Last traded price for every underlying, so positions in instruments
+  // that aren't on screen keep marking to market.
+  const [marks, setMarks] = useState(initialMarks);
 
-  const positions = useTradeStore((s) => s.positions);
-  const history = useTradeStore((s) => s.history);
+  // Trades are persisted in localStorage; until hydration finishes, render
+  // the same empty state the server did.
+  const hydrated = useHydrated();
+  const storedPositions = useTradeStore((s) => s.positions);
+  const storedHistory = useTradeStore((s) => s.history);
+  const positions = useMemo(() => (hydrated ? storedPositions : []), [hydrated, storedPositions]);
+  const history = useMemo(() => (hydrated ? storedHistory : []), [hydrated, storedHistory]);
   const openPosition = useTradeStore((s) => s.openPosition);
   const closePosition = useTradeStore((s) => s.closePosition);
   const reset = useTradeStore((s) => s.reset);
 
-  // Reset the candle series when the instrument changes — adjusting state
-  // during render (React's recommended pattern) instead of in an effect.
-  if (instrument !== candlesInstrument) {
-    setCandlesInstrument(instrument);
-    setCandles([...liveSessionCandles[instrument]]);
-  }
-
-  // Simulate a ticking market: nudge the last candle every few seconds.
+  // Simulate a ticking market: every underlying drifts every few seconds.
   useEffect(() => {
     const id = setInterval(() => {
-      setCandles((prev) => {
-        if (prev.length === 0) return prev;
-        const last = prev[prev.length - 1];
-        const drift = (Math.random() - 0.48) * last.close * 0.0006;
-        const close = Math.round((last.close + drift) * 100) / 100;
-        const updated: Candle = {
-          ...last,
-          close,
-          high: Math.max(last.high, close),
-          low: Math.min(last.low, close),
-        };
-        return [...prev.slice(0, -1), updated];
+      setMarks((prev) => {
+        const next = { ...prev };
+        for (const i of instruments) {
+          const drift = (Math.random() - 0.48) * prev[i] * 0.0006;
+          next[i] = Math.round((prev[i] + drift) * 100) / 100;
+        }
+        return next;
       });
     }, 2500);
     return () => clearInterval(id);
   }, []);
 
+  // The chart is the session's candles with the last one following the
+  // instrument's live mark.
+  const candles = useMemo<Candle[]>(() => {
+    const session = liveSessionCandles[instrument];
+    const last = session[session.length - 1];
+    const mark = marks[instrument];
+    return [
+      ...session.slice(0, -1),
+      { ...last, close: mark, high: Math.max(last.high, mark), low: Math.min(last.low, mark) },
+    ];
+  }, [instrument, marks]);
+
   const currentPrice = candles[candles.length - 1]?.close ?? 0;
-  const prevClose = candles[0]?.open ?? currentPrice;
-  const changePct = ((currentPrice - prevClose) / prevClose) * 100;
+  const sessionOpen = candles[0]?.open ?? currentPrice;
+  const changePct = ((currentPrice - sessionOpen) / sessionOpen) * 100;
+
+  // Live mark for any position: spot from the underlying's mark, options
+  // re-priced off the chain at the underlying's mark.
+  const markFor = useCallback(
+    (p: Position) => {
+      const contract = contractFor(p);
+      if (contract && isInstrument(contract.underlying)) {
+        return activeProvider.getOptionPremium(
+          contract.underlying,
+          contract.expiryId,
+          marks[contract.underlying],
+          contract.strike,
+          contract.leg,
+        );
+      }
+      return isInstrument(p.instrument) ? marks[p.instrument] : p.entryPrice;
+    },
+    [marks],
+  );
 
   const openPnl = useMemo(
     () =>
-      positions
-        .filter((p) => p.instrument === instrument)
-        .reduce((sum, p) => {
-          const direction = p.side === "BUY" ? 1 : -1;
-          return sum + (currentPrice - p.entryPrice) * p.quantity * direction;
-        }, 0),
-    [positions, instrument, currentPrice],
+      positions.reduce((sum, p) => {
+        const direction = p.side === "BUY" ? 1 : -1;
+        return sum + (markFor(p) - p.entryPrice) * p.quantity * direction;
+      }, 0),
+    [positions, markFor],
   );
 
   const realizedPnl = useMemo(() => history.reduce((sum, t) => sum + t.pnl, 0), [history]);
@@ -125,6 +174,7 @@ export default function PracticePage() {
   );
 
   function openTicket(t: TradeTicket) {
+    setTicketKey((k) => k + 1);
     setTicket(t);
   }
 
@@ -140,6 +190,7 @@ export default function PracticePage() {
     openPosition({
       instrument: ticket.instrumentLabel,
       entryPrice: ticket.price,
+      ...(ticket.option ? { option: ticket.option } : {}),
       ...values,
     });
     setTicket(null);
@@ -172,32 +223,43 @@ export default function PracticePage() {
             Simulated paper trading — no real capital at risk.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Phones: two full-width segmented rows so the chart stays near the top. */}
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+          <div role="radiogroup" aria-label="Instrument" className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
           {instruments.map((i) => (
             <button
               key={i}
               type="button"
+              role="radio"
+              aria-checked={instrument === i}
               onClick={() => setInstrument(i)}
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-[var(--radius-md)] border px-3 py-2 text-sm font-medium transition-colors",
+                "flex min-h-11 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-md)] border px-2 py-2 text-sm font-medium transition-colors sm:px-3",
                 instrument === i
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border-strong text-muted hover:text-foreground",
               )}
             >
-              <InstrumentSymbol instrument={i} className="h-5 w-5 text-[10px]" />
+              <InstrumentSymbol instrument={i} className="hidden h-5 w-5 sm:inline-flex" />
               {i}
             </button>
           ))}
-          <div className="ml-1 flex items-center gap-1 rounded-[var(--radius-md)] border border-border-strong p-1">
+          </div>
+          <div
+            role="radiogroup"
+            aria-label="Trading mode"
+            className="grid grid-cols-2 gap-1 rounded-[var(--radius-md)] border border-border-strong p-1 sm:flex sm:items-center"
+          >
             {(["spot", "options"] as const).map((m) => (
               <button
                 key={m}
                 type="button"
+                role="radio"
+                aria-checked={mode === m}
                 onClick={() => setMode(m)}
                 className={cn(
-                  "cursor-pointer rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-medium transition-colors",
-                  mode === m ? "bg-surface-2 text-foreground" : "text-muted-2 hover:text-foreground",
+                  "min-h-9 cursor-pointer rounded-[var(--radius-sm)] px-3 text-sm font-medium transition-colors",
+                  mode === m ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground",
                 )}
               >
                 {m === "spot" ? "Spot" : "Options"}
@@ -209,11 +271,11 @@ export default function PracticePage() {
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[1fr_320px]">
         <Card className="p-0">
-          <div className="flex items-center justify-between border-b border-border p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
             <div>
-              <p className="text-xs text-muted-2">{instrument} &middot; Paper</p>
+              <p className="text-xs text-muted">{instrument} &middot; Paper</p>
               <div className="mt-1 flex items-baseline gap-2.5">
-                <span className="font-mono text-2xl font-semibold tracking-tight">
+                <span className="font-mono text-2xl font-semibold tracking-tight tabular-nums" aria-live="off">
                   {currentPrice.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                 </span>
                 <Badge tone={changePct >= 0 ? "positive" : "negative"}>
@@ -222,6 +284,7 @@ export default function PracticePage() {
                   ) : (
                     <ArrowDownRight className="h-3 w-3" />
                   )}
+                  {changePct >= 0 ? "+" : ""}
                   {changePct.toFixed(2)}%
                 </Badge>
               </div>
@@ -239,19 +302,21 @@ export default function PracticePage() {
 
           {mode === "spot" ? (
             <div className="p-2">
-              <CandlestickChart data={candles} height={380} />
+              <CandlestickChart data={candles} height={380} label={`${instrument} intraday candlestick chart, last ${currentPrice.toFixed(2)}`} />
             </div>
           ) : (
             <div className="p-5">
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-muted-2">Expiry</span>
+              <div role="radiogroup" aria-label="Expiry" className="mb-4 flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted" aria-hidden="true">Expiry</span>
                 {expiries.map((e) => (
                   <button
                     key={e.id}
                     type="button"
+                    role="radio"
+                    aria-checked={expiryId === e.id}
                     onClick={() => setExpiryId(e.id)}
                     className={cn(
-                      "cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                      "min-h-9 cursor-pointer rounded-full border px-3.5 text-xs font-medium transition-colors",
                       expiryId === e.id
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border-strong text-muted hover:text-foreground",
@@ -264,17 +329,19 @@ export default function PracticePage() {
               <OptionChain
                 rows={optionChain}
                 spot={currentPrice}
+                instrument={instrument}
                 onSelect={(leg, strike, premium) =>
                   openTicket({
                     instrumentLabel: `${instrument} ${strike} ${leg}`,
                     price: premium,
                     isOption: true,
                     lotSize: LOT_SIZE[instrument],
+                    option: { underlying: instrument, strike, leg, expiryId },
                   })
                 }
               />
-              <p className="mt-3 text-xs text-muted-2">
-                Click a premium to buy that option (long CE/PE only — writing
+              <p className="mt-3 text-xs text-muted">
+                Select a premium to buy that option (long CE/PE only — writing
                 options isn&apos;t supported in paper trading yet).
               </p>
             </div>
@@ -285,10 +352,10 @@ export default function PracticePage() {
           <WalletCard available={wallet.available} used={wallet.used} equity={wallet.equity} />
 
           <Card>
-            <p className="text-xs uppercase tracking-wider text-muted-2">Session summary</p>
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted">Session summary</h2>
             <div className="mt-3 grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-muted-2">Open P&amp;L</p>
+                <p className="text-xs text-muted">Open P&amp;L (all positions)</p>
                 <AnimatedNumber
                   value={openPnl}
                   format={formatInr}
@@ -296,7 +363,7 @@ export default function PracticePage() {
                 />
               </div>
               <div>
-                <p className="text-xs text-muted-2">Realized P&amp;L</p>
+                <p className="text-xs text-muted">Realized P&amp;L</p>
                 <AnimatedNumber
                   value={realizedPnl}
                   format={formatInr}
@@ -304,11 +371,11 @@ export default function PracticePage() {
                 />
               </div>
               <div>
-                <p className="text-xs text-muted-2">Trades closed</p>
+                <p className="text-xs text-muted">Trades closed</p>
                 <p className="mt-1 font-mono text-lg font-semibold">{history.length}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-2">Win rate</p>
+                <p className="text-xs text-muted">Win rate</p>
                 <p className="mt-1 font-mono text-lg font-semibold">
                   {winRate === null ? "—" : `${winRate}%`}
                 </p>
@@ -318,60 +385,61 @@ export default function PracticePage() {
               <button
                 type="button"
                 onClick={() => setResetOpen(true)}
-                className="mt-4 flex cursor-pointer items-center gap-1.5 text-xs text-muted-2 hover:text-negative"
+                className="-mx-2 mt-3 flex min-h-10 cursor-pointer items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-xs text-muted transition-colors hover:bg-negative/10 hover:text-negative"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 Reset paper account
               </button>
             )}
           </Card>
 
           <Card>
-            <p className="text-xs uppercase tracking-wider text-muted-2">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted">
               Open positions ({positions.length})
-            </p>
+            </h2>
             {positions.length === 0 ? (
-              <p className="mt-4 text-sm text-muted-2">
+              <p className="mt-4 text-sm text-muted">
                 No open positions. Place a paper trade to get started.
               </p>
             ) : (
               <div className="mt-4 flex flex-col gap-3">
                 <AnimatePresence initial={false}>
                   {positions.map((p) => {
-                    const live = p.instrument === instrument ? currentPrice : p.entryPrice;
+                    const live = markFor(p);
                     const direction = p.side === "BUY" ? 1 : -1;
                     const pnl = (live - p.entryPrice) * p.quantity * direction;
                     return (
                       <motion.div
                         key={p.id}
-                        layout
-                        initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                        animate={{ opacity: 1, height: "auto", marginBottom: 0 }}
-                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        layout="position"
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.98 }}
                         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                        className="overflow-hidden rounded-[var(--radius-md)] border border-border px-3.5 py-3"
+                        className="rounded-[var(--radius-md)] border border-border px-3.5 py-3"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
                             <InstrumentSymbol instrument={p.instrument} />
                             <span className="text-sm font-medium">{p.instrument}</span>
                             <Badge tone={p.side === "BUY" ? "positive" : "negative"}>{p.side}</Badge>
                           </div>
-                          <span className={cn("font-mono text-sm font-medium", pnl >= 0 ? "text-positive" : "text-negative")}>
+                          <span className={cn("shrink-0 font-mono text-sm font-medium tabular-nums", pnl >= 0 ? "text-positive" : "text-negative")}>
                             {formatInr(pnl)}
                           </span>
                         </div>
-                        <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-muted-2">
+                        <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-muted tabular-nums sm:grid-cols-4">
                           <span>Qty {p.quantity}</span>
-                          <span>Entry {p.entryPrice.toFixed(1)}</span>
+                          <span>Entry {p.entryPrice.toFixed(2)}</span>
+                          <span>LTP {live.toFixed(2)}</span>
                           <span>SL {p.stopLoss}</span>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleClosePosition(p.id, live, p.side, p.quantity, p.entryPrice)}
-                          className="mt-3 w-full cursor-pointer rounded-[var(--radius-sm)] border border-border-strong py-1.5 text-xs font-medium text-muted transition-colors hover:border-negative/50 hover:text-negative"
+                          className="mt-3 min-h-10 w-full cursor-pointer rounded-[var(--radius-sm)] border border-border-strong text-sm font-medium text-muted transition-colors hover:border-negative/50 hover:text-negative"
                         >
-                          Close at market
+                          Close at {live.toFixed(2)}
                         </button>
                       </motion.div>
                     );
@@ -408,9 +476,9 @@ export default function PracticePage() {
       </div>
 
       <Card className="mt-5">
-        <p className="text-xs uppercase tracking-wider text-muted-2">Trade history</p>
+        <h2 className="text-xs font-medium uppercase tracking-wider text-muted">Trade history</h2>
         {history.length === 0 ? (
-          <p className="mt-4 text-sm text-muted-2">
+          <p className="mt-4 text-sm text-muted">
             Closed trades will appear here, stored locally on this device.
           </p>
         ) : (
@@ -429,20 +497,24 @@ export default function PracticePage() {
             <TableBody>
               {history.map((t) => (
                 <TableRow key={t.id}>
-                  <Td className="flex items-center gap-2 font-medium">
-                    <InstrumentSymbol instrument={t.instrument} />
-                    {t.instrument}
+                  <Td className="font-medium">
+                    <span className="flex items-center gap-2">
+                      <InstrumentSymbol instrument={t.instrument} />
+                      {t.instrument}
+                    </span>
                   </Td>
                   <Td>
                     <Badge tone={t.side === "BUY" ? "positive" : "negative"}>{t.side}</Badge>
                   </Td>
-                  <Td className="text-right font-mono">{t.entryPrice.toFixed(1)}</Td>
-                  <Td className="text-right font-mono">{t.exitPrice.toFixed(1)}</Td>
-                  <Td className="text-right font-mono">{t.quantity}</Td>
-                  <Td className="max-w-[220px] truncate whitespace-normal text-xs text-muted">
-                    {t.thesis}
+                  <Td className="text-right font-mono tabular-nums">{t.entryPrice.toFixed(2)}</Td>
+                  <Td className="text-right font-mono tabular-nums">{t.exitPrice.toFixed(2)}</Td>
+                  <Td className="text-right font-mono tabular-nums">{t.quantity}</Td>
+                  <Td className="min-w-[200px] max-w-[280px] whitespace-normal text-xs text-muted">
+                    <span className="line-clamp-2" title={t.thesis}>
+                      {t.thesis}
+                    </span>
                   </Td>
-                  <Td className={cn("text-right font-mono font-medium", t.pnl >= 0 ? "text-positive" : "text-negative")}>
+                  <Td className={cn("text-right font-mono font-medium tabular-nums", t.pnl >= 0 ? "text-positive" : "text-negative")}>
                     {formatInr(t.pnl)}
                   </Td>
                 </TableRow>
@@ -453,7 +525,7 @@ export default function PracticePage() {
       </Card>
 
       <PreTradeModal
-        key={ticket?.instrumentLabel ?? "none"}
+        key={ticketKey}
         open={ticket !== null}
         instrument={ticket?.instrumentLabel ?? instrument}
         currentPrice={ticket?.price ?? currentPrice}

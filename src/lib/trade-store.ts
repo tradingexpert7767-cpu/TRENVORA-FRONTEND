@@ -6,9 +6,18 @@ import { persist } from "zustand/middleware";
 export type Side = "BUY" | "SELL";
 export type Emotion = "Calm" | "Confident" | "Fearful" | "FOMO" | "Revenge" | "Uncertain";
 
+export type OptionContract = {
+  underlying: string;
+  strike: number;
+  leg: "CE" | "PE";
+  expiryId: string;
+};
+
 export type Position = {
   id: string;
   instrument: string;
+  /** Present for option positions so they can be re-marked as spot moves. */
+  option?: OptionContract;
   side: Side;
   quantity: number;
   entryPrice: number;

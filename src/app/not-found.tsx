@@ -7,7 +7,7 @@ import { ButtonLink } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <main className="flex min-h-dvh flex-1 flex-col items-center justify-center px-5 text-center">
+    <main id="main" className="flex min-h-dvh flex-1 flex-col items-center justify-center px-5 text-center">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}

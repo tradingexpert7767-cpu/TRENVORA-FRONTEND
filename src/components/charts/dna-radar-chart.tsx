@@ -9,24 +9,30 @@ import {
   Radar,
   Tooltip,
 } from "recharts";
-import { chartColors } from "@/lib/chart-colors";
+import { useThemeColors } from "@/hooks/use-theme-colors";
 
 type Trait = { label: string; score: number };
 
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 export function DnaRadarChart({ data }: { data: Trait[] }) {
+  const chartColors = useThemeColors();
+  const summary = data.map((d) => `${d.label} ${d.score}`).join(", ");
   return (
-    <div className="h-72 w-full">
+    <div className="h-72 w-full" role="img" aria-label={`Trading DNA radar chart: ${summary}`}>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart data={data} outerRadius="72%">
           <PolarGrid stroke={chartColors.border} />
           <PolarAngleAxis
             dataKey="label"
-            tick={{ fill: chartColors.muted, fontSize: 11 }}
+            tick={{ fill: chartColors.muted, fontSize: 12 }}
           />
           <PolarRadiusAxis
             angle={90}
             domain={[0, 100]}
-            tick={{ fill: chartColors.mutedStrong, fontSize: 10 }}
+            tick={{ fill: chartColors.muted, fontSize: 11 }}
             axisLine={false}
           />
           <Tooltip
@@ -45,6 +51,7 @@ export function DnaRadarChart({ data }: { data: Trait[] }) {
             fill={chartColors.intelligence}
             fillOpacity={0.22}
             strokeWidth={2}
+            isAnimationActive={!prefersReducedMotion()}
           />
         </RadarChart>
       </ResponsiveContainer>

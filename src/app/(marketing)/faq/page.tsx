@@ -5,7 +5,7 @@ import { FaqAccordion } from "@/components/marketing/faq-accordion";
 import { faqs } from "@/lib/mock-data";
 
 export const metadata: Metadata = {
-  title: "FAQ — Trenvora",
+  title: "FAQ",
   description: "Answers to common questions about paper trading, Trade Guard, AI Coach, and how Trenvora works.",
 };
 
@@ -15,7 +15,7 @@ export default function FaqPage() {
       <PageHeader
         eyebrow="FAQ"
         title="Frequently asked questions."
-        description="If your question isn't answered here, reach out from your account settings once you're signed in."
+        description="How paper trading, Trade Guard, the AI Coach and your data work. For a tour of each tool, see the Features page."
       />
 
       <section className="py-16 sm:py-20">

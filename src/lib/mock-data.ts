@@ -30,9 +30,9 @@ export const tradingDna = [
   { label: "Entry Quality", score: 83, evidence: "34 of 42 entries occurred within your planned trigger zone." },
   { label: "Exit Quality", score: 64, evidence: "14 trades exited before target, 8 trades had a modified stop loss." },
   { label: "Consistency", score: 76, evidence: "Trade frequency stayed within your weekly plan in 9 of the last 12 weeks." },
-  { label: "Patience", score: 69, evidence: "Average time-to-entry after signal: 4.2 minutes, down from 1.8 minutes last month." },
-  { label: "FOMO", score: 31, evidence: "13 of 42 trades were entered more than 2 minutes after the triggering move." },
-  { label: "Overtrading", score: 22, evidence: "3 days exceeded your 3-trade daily limit in the last 30 days." },
+  { label: "Patience", score: 69, evidence: "Waited an average of 4.2 minutes for confirmation before entering, up from 1.8 minutes last month." },
+  { label: "FOMO control", score: 31, evidence: "13 of 42 trades were entered more than 2 minutes after the triggering move." },
+  { label: "Overtrading control", score: 22, evidence: "3 days exceeded your 3-trade daily limit in the last 30 days." },
 ];
 
 export const tradeGuardAlerts = [
@@ -132,9 +132,9 @@ export const strategyBacktest = {
 };
 
 export const replaySessions = [
-  { date: "18 Sep 2026", instrument: "NIFTY", time: "09:30 AM", description: "Gap-up open with early trend reversal" },
-  { date: "02 Sep 2026", instrument: "BANK NIFTY", time: "10:15 AM", description: "Range-bound session with a late breakout" },
-  { date: "21 Aug 2026", instrument: "SENSEX", time: "02:00 PM", description: "High-volatility event-driven afternoon" },
+  { id: "18-sep-nifty", date: "18 Sep 2026", instrument: "NIFTY", time: "09:30 AM", description: "Gap-up open with early trend reversal" },
+  { id: "02-sep-bank-nifty", date: "02 Sep 2026", instrument: "BANK NIFTY", time: "10:15 AM", description: "Range-bound session with a late breakout" },
+  { id: "21-aug-sensex", date: "21 Aug 2026", instrument: "SENSEX", time: "02:00 PM", description: "High-volatility event-driven afternoon" },
 ];
 
 export const weeklyReport = {
@@ -234,6 +234,6 @@ export const faqs = [
   {
     question: "Is market data here licensed for live trading decisions?",
     answer:
-      "Trenvora uses a market-data abstraction layer designed for education and simulation. It is not positioned as a source for live trading execution.",
+      "No. Prices on Trenvora are simulated for practice — they track realistic intraday behaviour but are not live exchange quotes. Never use them to place real trades.",
   },
 ];

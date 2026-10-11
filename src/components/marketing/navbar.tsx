@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, LogOut } from "lucide-react";
@@ -48,21 +48,33 @@ export function Navbar() {
     router.push("/");
   }
 
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+  const isActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`);
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/80 backdrop-blur-md">
       <Container className="flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
+        <Link href="/" className="flex min-h-11 items-center gap-2.5" onClick={() => setOpen(false)}>
           <Logo />
           <span className="text-[15px] font-semibold tracking-tight">Trenvora</span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={(e) => handleNavClick(e, link.href)}
-              className="rounded-[var(--radius-sm)] px-3.5 py-2 text-sm text-muted transition-colors hover:text-foreground"
+              aria-current={isActive(link.href) ? "page" : undefined}
+              className="rounded-[var(--radius-sm)] px-3.5 py-2.5 text-sm text-muted transition-colors hover:text-foreground aria-[current=page]:font-medium aria-[current=page]:text-foreground"
             >
               {link.label}
             </Link>
@@ -89,8 +101,9 @@ export function Navbar() {
             type="button"
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
+            aria-controls="mobile-nav"
             onClick={() => setOpen((v) => !v)}
-            className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-[var(--radius-sm)] text-foreground"
+            className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-[var(--radius-sm)] text-foreground"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -98,14 +111,15 @@ export function Navbar() {
       </Container>
 
       {open && (
-        <div className="border-t border-border bg-background lg:hidden">
+        <nav id="mobile-nav" aria-label="Main" className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border bg-background lg:hidden">
           <Container className="flex flex-col gap-1 py-4">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href)}
-                className="rounded-[var(--radius-sm)] px-3 py-2.5 text-sm text-muted hover:bg-surface hover:text-foreground"
+                aria-current={isActive(link.href) ? "page" : undefined}
+                className="flex min-h-11 items-center rounded-[var(--radius-sm)] px-3 text-sm text-muted hover:bg-surface hover:text-foreground aria-[current=page]:bg-surface aria-[current=page]:text-foreground"
               >
                 {link.label}
               </Link>
@@ -116,7 +130,7 @@ export function Navbar() {
                   <Link
                     href="/profile"
                     onClick={() => setOpen(false)}
-                    className="flex items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-2 hover:bg-surface"
+                    className="flex min-h-11 items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-2 hover:bg-surface"
                   >
                     <UserAvatar name={user.name} />
                     <span className="text-sm font-medium">{user.name}</span>
@@ -124,7 +138,7 @@ export function Navbar() {
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="flex cursor-pointer items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-2 text-sm text-negative hover:bg-negative/10"
+                    className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[var(--radius-sm)] px-2 py-2 text-sm text-negative hover:bg-negative/10"
                   >
                     <LogOut className="h-4 w-4" />
                     Log out
@@ -140,7 +154,7 @@ export function Navbar() {
               </ButtonLink>
             </div>
           </Container>
-        </div>
+        </nav>
       )}
     </header>
   );

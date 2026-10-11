@@ -7,8 +7,8 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="flex min-h-dvh flex-1 flex-col items-center justify-center px-5 py-16">
-      <Link href="/" className="mb-8 flex items-center gap-2.5">
+    <main id="main" className="flex min-h-dvh flex-1 flex-col items-center justify-center px-5 py-16">
+      <Link href="/" className="mb-8 flex min-h-11 items-center gap-2.5">
         <Logo />
         <span className="text-[15px] font-semibold tracking-tight">Trenvora</span>
       </Link>
